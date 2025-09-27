@@ -1,0 +1,4 @@
+                            <option value="clinica">Clínica Médica</option>
+                            <option value="clinica">Clínica Médica</option>
+                            <option value="clinica">Clínica Médica</option>
+                        <option value="clinica">Clínica Médica</option>

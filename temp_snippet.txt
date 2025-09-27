@@ -1,0 +1,70 @@
+showDashboardView(viewId) {
+        console.log('Showing dashboard view:', viewId);
+        
+        // Update sidebar
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        const activeLink = document.querySelector(`[data-view="${viewId}"]`);
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+        
+        // Hide all views
+        document.querySelectorAll('.dashboard-view').forEach(view => {
+            view.classList.remove('active');
+        });
+        
+        // Show target view
+        const view = document.getElementById(viewId + 'Content');
+        if (view) {
+            view.classList.add('active');
+            this.currentDashboardView = viewId;
+            // Auto-close sidebar after navigation
+            this.closeSidebar();
+            
+            // Update title
+            const titles = {
+                overview: 'Overview',
+                flashcards: 'Flashcards',
+                quizzes: 'Simulados',
+                statistics: 'Estatísticas',
+                profile: 'Perfil',
+                admin: 'Administração'
+            };
+            
+            const titleElement = document.getElementById('dashboardTitle');
+            if (titleElement) {
+                titleElement.textContent = titles[viewId] || 'Dashboard';
+            }
+            
+            // Load view-specific data
+            switch (viewId) {
+                case 'overview':
+                    this.loadOverview();
+                    break;
+                case 'flashcards':
+                    this.loadFlashcards();
+                    break;
+                case 'quizzes':
+                    this.loadQuizzes();
+                    break;
+                case 'statistics':
+                    this.loadStatistics();
+                    break;
+                case 'profile':
+                    this.loadProfile();
+                    break;
+                case 'admin':
+                    this.loadAdmin();
+                    break;
+            }
+            
+            console.log('Dashboard view shown:', viewId);
+        } else {
+            console.error('Dashboard view not found:', viewId);
+        }
+    }
+
+    // === DASHBOARD LOADING ===

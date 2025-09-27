@@ -1,0 +1,30 @@
+// Show decks inside selected category
+            const filtered = userDecks.filter(d => d.category === this.currentFlashcardsCategory);
+            filtered.forEach(deck => {
+                const cardCount = deck.cards?.length || 0;
+                const dueCards = this.getDueCardsCount(deck);
+                const accuracy = this.getDeckAccuracy(deck);
+                html += `
+                    <div class="deck-card" onclick="app.startStudy('${deck.id}')">
+                        <div class="deck-header">
+                            <span class="deck-category">${this.getCategoryName(deck.category)}</span>
+                        </div>
+                        <h3>${deck.name}</h3>
+                        <p>${deck.description}</p>
+                        <div class="deck-stats">
+                            <div class="deck-stat">
+                                <span class="deck-stat-value">${cardCount}</span>
+                                <span class="deck-stat-label">Cards</span>
+                            </div>
+                            <div class="deck-stat">
+                                <span class="deck-stat-value">${dueCards}</span>
+                                <span class="deck-stat-label">Devidos</span>
+                            </div>
+                            <div class="deck-stat">
+                                <span class="deck-stat-value">${accuracy}%</span>
+                                <span class="deck-stat-label">Precisão</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });

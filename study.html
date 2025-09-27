@@ -1,0 +1,719 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedFocus Cards - Estudo</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <a href="flashcards.html" class="btn btn--outline">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar
+                </a>
+            </div>
+            
+            <div class="nav-brand">
+                <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <span class="brand-text">MedFocus Cards</span>
+            </div>
+            
+            <div class="nav-right">
+                <button class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+                
+                <div class="study-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Sequência:</span>
+                        <span class="stat-value" id="studyStreak">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Precisão:</span>
+                        <span class="stat-value" id="sessionAccuracy">0%</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn--outline" onclick="pauseStudy()">
+                    <i class="fas fa-pause"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Study Area -->
+    <main class="study-main">
+        <!-- Study Header -->
+        <div class="study-header">
+            <div class="deck-info">
+                <h2 id="deckName">Baralho de Estudo</h2>
+                <div class="progress-info">
+                    <span id="cardProgress">Card 1 de 10</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 10%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="study-timer">
+                <i class="fas fa-clock"></i>
+                <span id="studyTimer">00:00</span>
+            </div>
+        </div>
+
+        <!-- Study Content -->
+        <div class="study-content">
+            <div class="study-card-container" id="studyCard">
+                <!-- Card content will be loaded here by JavaScript -->
+                <div class="loading-study">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Carregando próximo card...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session Complete View -->
+        <div class="session-complete hidden" id="sessionComplete">
+            <div class="complete-content">
+                <div class="complete-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <h2>Sessão Concluída!</h2>
+                <div class="session-stats">
+                    <div class="session-stat">
+                        <div class="stat-number" id="totalCardsStudied">0</div>
+                        <div class="stat-label">Cards Estudados</div>
+                    </div>
+                    <div class="session-stat">
+                        <div class="stat-number" id="correctRate">0%</div>
+                        <div class="stat-label">Taxa de Acerto</div>
+                    </div>
+                    <div class="session-stat">
+                        <div class="stat-number" id="timeSpent">0m</div>
+                        <div class="stat-label">Tempo Total</div>
+                    </div>
+                </div>
+                
+                <div class="complete-actions">
+                    <button class="btn btn--primary" onclick="continueStudying()">
+                        <i class="fas fa-redo"></i>
+                        Continuar Estudando
+                    </button>
+                    <button class="btn btn--secondary" onclick="goToDashboard()">
+                        <i class="fas fa-chart-line"></i>
+                        Ver Estatísticas
+                    </button>
+                    <button class="btn btn--outline" onclick="goToFlashcards()">
+                        <i class="fas fa-cards-blank"></i>
+                        Voltar aos Baralhos
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pause Overlay -->
+        <div class="pause-overlay hidden" id="pauseOverlay">
+            <div class="pause-content">
+                <div class="pause-icon">
+                    <i class="fas fa-pause-circle"></i>
+                </div>
+                <h3>Estudo Pausado</h3>
+                <p>Seu progresso foi salvo. Clique para continuar.</p>
+                <button class="btn btn--primary" onclick="resumeStudy()">
+                    <i class="fas fa-play"></i>
+                    Continuar
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Keyboard Shortcuts Help -->
+    <div class="shortcuts-help hidden" id="shortcutsHelp">
+        <div class="shortcuts-content">
+            <h3>Atalhos do Teclado</h3>
+            <div class="shortcuts-list">
+                <div class="shortcut-item">
+                    <kbd>Espaço</kbd>
+                    <span>Mostrar Resposta</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>1</kbd>
+                    <span>Repetir (Difícil)</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>2</kbd>
+                    <span>Difícil</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>3</kbd>
+                    <span>Bom</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>4</kbd>
+                    <span>Fácil</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>P</kbd>
+                    <span>Pausar</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>?</kbd>
+                    <span>Mostrar Atalhos</span>
+                </div>
+            </div>
+            <button class="btn btn--sm btn--outline" onclick="toggleShortcutsHelp()">
+                Fechar
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./js/storage.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/ui.js"></script>
+    <script src="./js/flashcards.js"></script>
+
+    <script>
+        // Study page specific functionality
+        let studyStartTime = null;
+        let studyTimer = null;
+        let isPaused = false;
+        let cardStartTime = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Auth.requireAuth()) return;
+            
+            initStudyPage();
+            setupKeyboardShortcuts();
+            startStudyTimer();
+        });
+
+        function initStudyPage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const deckId = urlParams.get('deck');
+            
+            if (!deckId) {
+                UI.notifications.show('Nenhum baralho especificado', 'error');
+                setTimeout(() => window.location.href = 'flashcards.html', 2000);
+                return;
+            }
+            
+            // Tentar iniciar estudo através do módulo Flashcards
+            const success = Flashcards.study.start(deckId);
+            
+            if (!success) {
+                setTimeout(() => window.location.href = 'flashcards.html', 2000);
+            }
+        }
+
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if (isPaused) return;
+                
+                switch(e.key.toLowerCase()) {
+                    case ' ': // Space
+                        e.preventDefault();
+                        const showAnswerBtn = document.getElementById('showAnswerBtn');
+                        if (showAnswerBtn && showAnswerBtn.style.display !== 'none') {
+                            Flashcards.study.showAnswer();
+                        }
+                        break;
+                    case '1':
+                        e.preventDefault();
+                        Flashcards.study.answerCard(0); // Repetir
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        Flashcards.study.answerCard(1); // Difícil
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        Flashcards.study.answerCard(2); // Bom
+                        break;
+                    case '4':
+                        e.preventDefault();
+                        Flashcards.study.answerCard(3); // Fácil
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        pauseStudy();
+                        break;
+                    case '?':
+                        e.preventDefault();
+                        toggleShortcutsHelp();
+                        break;
+                }
+            });
+        }
+
+        function startStudyTimer() {
+            studyStartTime = new Date();
+            cardStartTime = new Date();
+            
+            studyTimer = setInterval(() => {
+                if (isPaused) return;
+                
+                const elapsed = Math.floor((new Date() - studyStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                
+                const timerEl = document.getElementById('studyTimer');
+                if (timerEl) {
+                    timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+
+        function pauseStudy() {
+            isPaused = !isPaused;
+            const pauseOverlay = document.getElementById('pauseOverlay');
+            
+            if (isPaused) {
+                pauseOverlay.classList.remove('hidden');
+            } else {
+                pauseOverlay.classList.add('hidden');
+            }
+        }
+
+        function resumeStudy() {
+            isPaused = false;
+            document.getElementById('pauseOverlay').classList.add('hidden');
+        }
+
+        function toggleShortcutsHelp() {
+            const help = document.getElementById('shortcutsHelp');
+            help.classList.toggle('hidden');
+        }
+
+        function continueStudying() {
+            // Reiniciar com cards devidos restantes
+            const urlParams = new URLSearchParams(window.location.search);
+            const deckId = urlParams.get('deck');
+            window.location.reload();
+        }
+
+        function goToDashboard() {
+            window.location.href = 'dashboard.html';
+        }
+
+        function goToFlashcards() {
+            window.location.href = 'flashcards.html';
+        }
+
+        // Override das funções do Flashcards para interface específica
+        const originalFinishSession = Flashcards.study.finishSession;
+        Flashcards.study.finishSession = () => {
+            // Parar timer
+            if (studyTimer) {
+                clearInterval(studyTimer);
+            }
+            
+            // Mostrar resultados
+            showSessionResults();
+        };
+
+        function showSessionResults() {
+            const session = Flashcards.studySession;
+            if (!session) return;
+            
+            // Esconder área de estudo
+            document.querySelector('.study-content').classList.add('hidden');
+            
+            // Mostrar resultados
+            const completeView = document.getElementById('sessionComplete');
+            completeView.classList.remove('hidden');
+            
+            // Atualizar estatísticas
+            const accuracy = session.cardsStudied > 0 ? 
+                Math.round((session.correctAnswers / session.cardsStudied) * 100) : 0;
+            const timeInMinutes = Math.round(session.totalTime / 60);
+            
+            document.getElementById('totalCardsStudied').textContent = session.cardsStudied;
+            document.getElementById('correctRate').textContent = `${accuracy}%`;
+            document.getElementById('timeSpent').textContent = `${timeInMinutes}m`;
+            
+            // Salvar estatísticas
+            originalFinishSession.call(Flashcards.study);
+        }
+
+        // Override para mostrar progresso
+        const originalShowNextCard = Flashcards.study.showNextCard;
+        Flashcards.study.showNextCard = () => {
+            // Atualizar progresso
+            updateProgress();
+            cardStartTime = new Date();
+            
+            // Chamar original
+            originalShowNextCard.call(Flashcards.study);
+        };
+
+        function updateProgress() {
+            const session = Flashcards.studySession;
+            if (!session) return;
+            
+            const current = session.cardsStudied + 1;
+            const total = session.cardsStudied + Flashcards.studyQueue.length + 1;
+            const percentage = (current / total) * 100;
+            
+            document.getElementById('cardProgress').textContent = `Card ${current} de ${total}`;
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+            
+            // Atualizar precisão da sessão
+            if (session.cardsStudied > 0) {
+                const accuracy = Math.round((session.correctAnswers / session.cardsStudied) * 100);
+                document.getElementById('sessionAccuracy').textContent = `${accuracy}%`;
+            }
+        }
+
+        // Atualizar nome do deck quando disponível
+        const originalStart = Flashcards.study.start;
+        Flashcards.study.start = (deckId) => {
+            const result = originalStart.call(Flashcards.study, deckId);
+            
+            if (result && Flashcards.currentDeck) {
+                document.getElementById('deckName').textContent = Flashcards.currentDeck.name;
+            }
+            
+            return result;
+        };
+    </script>
+
+    <style>
+        /* Study page specific styles */
+        .study-main {
+            min-height: calc(100vh - 80px);
+            background: linear-gradient(135deg, var(--color-background), var(--color-secondary));
+            padding: 0;
+        }
+
+        .study-header {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: var(--space-4) var(--space-6);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .deck-info h2 {
+            margin: 0 0 var(--space-2) 0;
+            color: var(--color-text);
+        }
+
+        .progress-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 8px;
+            background: var(--color-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            transition: width 0.3s ease;
+        }
+
+        .study-timer {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .study-stats {
+            display: flex;
+            gap: var(--space-4);
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: var(--font-size-sm);
+        }
+
+        .stat-label {
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-1);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .study-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-8);
+        }
+
+        .study-card-container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .study-card {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: var(--space-8);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--color-border);
+            text-align: center;
+        }
+
+        .card-counter {
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--space-4);
+        }
+
+        .card-question h3 {
+            font-size: var(--font-size-3xl);
+            margin-bottom: var(--space-6);
+            line-height: 1.4;
+            color: var(--color-text);
+        }
+
+        .card-answer {
+            margin-top: var(--space-6);
+            padding-top: var(--space-6);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .answer-content h4 {
+            color: var(--color-primary);
+            margin-bottom: var(--space-3);
+        }
+
+        .answer-content p {
+            font-size: var(--font-size-lg);
+            line-height: 1.6;
+            margin-bottom: var(--space-4);
+        }
+
+        .card-explanation {
+            background: var(--color-secondary);
+            padding: var(--space-4);
+            border-radius: var(--radius-base);
+            margin-top: var(--space-4);
+        }
+
+        .card-explanation h4 {
+            color: var(--color-text);
+            margin-bottom: var(--space-2);
+        }
+
+        .answer-buttons {
+            display: flex;
+            gap: var(--space-3);
+            justify-content: center;
+            margin-top: var(--space-6);
+            flex-wrap: wrap;
+        }
+
+        .answer-buttons .btn {
+            min-width: 120px;
+        }
+
+        .card-actions {
+            margin-top: var(--space-6);
+        }
+
+        .loading-study {
+            text-align: center;
+            color: var(--color-text-secondary);
+            padding: var(--space-8);
+        }
+
+        .loading-study i {
+            color: var(--color-primary);
+            margin-bottom: var(--space-4);
+        }
+
+        /* Session Complete */
+        .session-complete {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--color-background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .complete-content {
+            text-align: center;
+            max-width: 600px;
+            padding: var(--space-8);
+        }
+
+        .complete-icon {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: var(--space-4);
+        }
+
+        .complete-content h2 {
+            font-size: var(--font-size-4xl);
+            margin-bottom: var(--space-8);
+            color: var(--color-text);
+        }
+
+        .session-stats {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-8);
+            margin-bottom: var(--space-8);
+        }
+
+        .session-stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: var(--font-size-4xl);
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: var(--space-2);
+        }
+
+        .complete-actions {
+            display: flex;
+            gap: var(--space-4);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Pause Overlay */
+        .pause-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .pause-content {
+            background: var(--color-surface);
+            padding: var(--space-8);
+            border-radius: var(--radius-lg);
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .pause-icon {
+            font-size: 3rem;
+            color: var(--color-primary);
+            margin-bottom: var(--space-4);
+        }
+
+        /* Shortcuts Help */
+        .shortcuts-help {
+            position: fixed;
+            bottom: var(--space-4);
+            right: var(--space-4);
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            box-shadow: var(--shadow-lg);
+            z-index: 1500;
+            max-width: 300px;
+        }
+
+        .shortcuts-content h3 {
+            margin: 0 0 var(--space-3) 0;
+            color: var(--color-text);
+        }
+
+        .shortcuts-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .shortcut-item kbd {
+            background: var(--color-secondary);
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-sm);
+            font-family: monospace;
+            font-size: var(--font-size-xs);
+        }
+
+        @media (max-width: 768px) {
+            .study-header {
+                flex-direction: column;
+                gap: var(--space-4);
+                text-align: center;
+            }
+
+            .progress-bar {
+                width: 150px;
+            }
+
+            .study-stats {
+                justify-content: center;
+            }
+
+            .answer-buttons {
+                flex-direction: column;
+            }
+
+            .session-stats {
+                flex-direction: column;
+                gap: var(--space-4);
+            }
+
+            .complete-actions {
+                flex-direction: column;
+            }
+
+            .shortcuts-help {
+                position: fixed;
+                bottom: 0;
+                right: 0;
+                left: 0;
+                border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+                max-width: none;
+            }
+        }
+    </style>
+</body>
+</html>
+
