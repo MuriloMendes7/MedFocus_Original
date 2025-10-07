@@ -30,7 +30,7 @@
     if (global.AdminStorageService) {
       return Promise.resolve();
     }
-    return loadScriptOnce('services/storageService.js');
+    return loadScriptOnce('js/storage.js');
   }
 
   function ensureUploaderModule() {
