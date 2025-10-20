@@ -1,0 +1,459 @@
+/* Admin Editor Styles */
+
+/* Basic Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  overflow: auto;
+}
+
+.modal .modal-content {
+  background-color: #fefefe;
+  margin: 5% auto;
+  padding: 0;
+  border: 1px solid #888;
+  width: 90%;
+  max-width: 600px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modal .modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal .modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.modal .modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #aaa;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.modal .modal-close:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.modal .modal-body {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modal .modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #ddd;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background-color: #f9f9f9;
+}
+
+.modal .form-group {
+  margin-bottom: 15px;
+}
+
+.modal .form-label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #555;
+}
+
+.modal .form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.modal .form-control:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.modal .upload-area {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+  position: relative;
+}
+
+.modal .upload-area:hover {
+  border-color: #007bff;
+}
+
+.modal .upload-icon {
+  font-size: 48px;
+  color: #ccc;
+  margin-bottom: 10px;
+}
+
+.modal .upload-area p {
+  margin: 0;
+  color: #666;
+  font-size: 16px;
+}
+
+.modal .file-preview {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.modal .btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.modal .btn--primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.modal .btn--primary:hover {
+  background-color: #0056b3;
+}
+
+.modal .btn--outline {
+  background-color: transparent;
+  color: #007bff;
+  border: 1px solid #007bff;
+}
+
+.modal .btn--outline:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+.modal .btn--secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.modal .btn--secondary:hover {
+  background-color: #545b62;
+}
+
+/* Specific for upload modals */
+.modal .upload-area input[type="file"] {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal .modal-content {
+    width: 95%;
+    margin: 10% auto;
+  }
+
+  .modal .modal-body {
+    padding: 15px;
+  }
+
+  .modal .modal-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .modal .btn {
+    width: 100%;
+  }
+}
+
+.modal.editor-modal .modal-content {
+  max-width: 800px;
+  width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal.editor-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal.editor-modal .modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.modal.editor-modal .close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.25rem;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.editor-modal .close-btn:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.modal.editor-modal .modal-body {
+  padding: 1rem;
+}
+
+.modal.editor-modal .deck-meta {
+  margin-bottom: 1.5rem;
+}
+
+.modal.editor-modal .deck-meta input,
+.modal.editor-modal .deck-meta textarea {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.modal.editor-modal .deck-meta input:focus,
+.modal.editor-modal .deck-meta textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.modal.editor-modal .deck-meta textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.modal.editor-modal .editor-content {
+  margin-bottom: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.modal.editor-modal .editor-item {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.modal.editor-modal .item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.modal.editor-modal .item-number {
+  font-weight: bold;
+  color: #333;
+}
+
+.modal.editor-modal .remove-item-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.25rem;
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.editor-modal .remove-item-btn:hover {
+  background-color: #f8d7da;
+}
+
+.modal.editor-modal .question-text,
+.modal.editor-modal .answer-text,
+.modal.editor-modal .explanation-text {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.modal.editor-modal .question-text:focus,
+.modal.editor-modal .answer-text:focus,
+.modal.editor-modal .explanation-text:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.modal.editor-modal .alternatives {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.modal.editor-modal .alt-input {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.modal.editor-modal .alt-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.modal.editor-modal .correct-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal.editor-modal .correct-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.modal.editor-modal .editor-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.modal.editor-modal .btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal.editor-modal .btn--primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.modal.editor-modal .btn--primary:hover {
+  background-color: #0056b3;
+}
+
+.modal.editor-modal .btn--success {
+  background-color: #28a745;
+  color: white;
+}
+
+.modal.editor-modal .btn--success:hover {
+  background-color: #1e7e34;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .modal.editor-modal .modal-content {
+    width: 95vw;
+    margin: 2rem auto;
+  }
+
+  .modal.editor-modal .alternatives {
+    grid-template-columns: 1fr;
+  }
+
+  .modal.editor-modal .editor-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .modal.editor-modal .btn {
+    width: 100%;
+  }
+}
+
+/* Loading states */
+.modal.editor-modal .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Error states */
+.modal.editor-modal .editor-item.error {
+  border-color: #dc3545;
+  background-color: #f8d7da;
+}
+
+.modal.editor-modal .editor-item.error .item-number {
+  color: #721c24;
+}
+
+/* Success states */
+.modal.editor-modal .editor-item.success {
+  border-color: #28a745;
+  background-color: #d4edda;
+}
+
+.modal.editor-modal .editor-item.success .item-number {
+  color: #155724;
+}

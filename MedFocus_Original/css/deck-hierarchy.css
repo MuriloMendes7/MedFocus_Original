@@ -1,0 +1,323 @@
+/* Estilos para Hierarquia de Decks */
+
+.hierarchy-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.hierarchy-folder {
+    margin: 8px 0;
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    background: var(--card-background, #ffffff);
+    overflow: hidden;
+}
+
+.folder-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--background-secondary, #f8f9fa);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.folder-header:hover {
+    background: var(--background-hover, #e9ecef);
+}
+
+.folder-header i {
+    margin-right: 8px;
+    color: var(--primary-color, #4fd1c7);
+    width: 16px;
+    text-align: center;
+}
+
+.folder-name {
+    font-weight: 600;
+    color: var(--text-primary, #333333);
+    flex: 1;
+}
+
+.folder-count {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #666666);
+    background: var(--background-tertiary, #e9ecef);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.folder-content {
+    padding: 8px 0;
+}
+
+.hierarchy-deck {
+    margin: 4px 0;
+}
+
+.deck-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin: 0 12px;
+    border: 1px solid transparent;
+    min-height: 56px;
+}
+
+.deck-item:hover {
+    background: var(--background-hover, #f8f9fa);
+    border-color: var(--border-color, #e0e0e0);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.deck-item i {
+    margin-right: 12px;
+    color: var(--accent-color, #6c757d);
+    width: 20px;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.deck-name {
+    font-weight: 600;
+    color: var(--text-primary, #333333);
+    flex: 1;
+    font-size: 1rem;
+}
+
+.deck-count {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #666666);
+    background: var(--background-tertiary, #e9ecef);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-weight: 500;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* Modo escuro */
+[data-color-scheme="dark"] .hierarchy-folder {
+    border-color: #444444;
+    background: #2d2d2d;
+}
+
+[data-color-scheme="dark"] .folder-header {
+    background: #3a3a3a;
+    border-bottom-color: #444444;
+}
+
+[data-color-scheme="dark"] .folder-header:hover {
+    background: #4a4a4a;
+}
+
+[data-color-scheme="dark"] .folder-name {
+    color: #ffffff;
+}
+
+[data-color-scheme="dark"] .folder-count {
+    color: #cccccc;
+    background: #4a4a4a;
+}
+
+[data-color-scheme="dark"] .deck-item:hover {
+    background: #3a3a3a;
+}
+
+[data-color-scheme="dark"] .deck-name {
+    color: #ffffff;
+}
+
+[data-color-scheme="dark"] .deck-count {
+    color: #cccccc;
+    background: #4a4a4a;
+}
+
+/* Seleção múltipla */
+.deck-item.selected {
+    background: var(--primary-color, #4fd1c7);
+    color: white;
+}
+
+.deck-item.selected .deck-name,
+.deck-item.selected .deck-count {
+    color: white;
+}
+
+/* Botões de ação */
+.hierarchy-actions {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 20px;
+    background: var(--background-secondary, #f8f9fa);
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #e0e0e0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.hierarchy-actions button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    flex: 1;
+    max-width: 200px;
+}
+
+.btn-hierarchy-primary {
+    background: var(--primary-color, #4fd1c7);
+    color: white;
+    flex: 2;
+    max-width: 250px;
+    font-size: 1rem;
+    padding: 14px 24px;
+}
+
+.btn-hierarchy-primary:hover {
+    background: var(--primary-hover, #45b8b0);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 209, 199, 0.3);
+}
+
+.btn-hierarchy-primary:disabled {
+    background: var(--background-tertiary, #e9ecef);
+    color: var(--text-secondary, #666666);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.selected-count {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-left: 8px;
+}
+
+.btn-hierarchy-secondary {
+    background: var(--background-tertiary, #e9ecef);
+    color: var(--text-primary, #333333);
+    border: 1px solid var(--border-color, #d0d0d0);
+}
+
+.btn-hierarchy-secondary:hover {
+    background: var(--background-hover, #d6d8db);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal de seleção múltipla */
+.selection-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.selection-modal-content {
+    background: var(--card-background, #ffffff);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.selection-modal h3 {
+    margin: 0 0 16px 0;
+    color: var(--text-primary, #333333);
+}
+
+.selected-decks-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+.selected-deck-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.selected-deck-item:last-child {
+    border-bottom: none;
+}
+
+.selected-deck-item .deck-info {
+    flex: 1;
+}
+
+.selected-deck-item .deck-name {
+    font-weight: 500;
+    color: var(--text-primary, #333333);
+}
+
+.selected-deck-item .deck-path {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #666666);
+}
+
+.remove-deck-btn {
+    background: none;
+    border: none;
+    color: var(--danger-color, #dc3545);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.remove-deck-btn:hover {
+    background: var(--danger-color, #dc3545);
+    color: white;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .hierarchy-container {
+        padding: 12px;
+    }
+    
+    .folder-header,
+    .deck-item {
+        padding: 8px 12px;
+    }
+    
+    .hierarchy-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .hierarchy-actions button {
+        justify-content: center;
+    }
+}

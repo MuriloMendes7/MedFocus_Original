@@ -1,0 +1,1689 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedFocus Cards</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/deck-hierarchy.css">
+    <link rel="stylesheet" href="./admin/usuarios/ui/styles.css">
+    <link rel="stylesheet" href="./admin/usuarios/ui/styles.css">
+    <!-- Brand icons -->
+    <link rel="icon" type="image/png" href="./assets/medfocus-icon.png">
+    <link rel="apple-touch-icon" href="./assets/medfocus-icon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Early globals to avoid inline onclick errors before scripts load
+        window.navigateToHome = window.navigateToHome || function () {
+            try { if (typeof window.showPage === 'function') { window.showPage('homePage'); } else { location.hash = ''; } } catch (e) { }
+        };
+        window.toggleSidebar = window.toggleSidebar || function () {
+            try { var sb = document.getElementById('sidebar'); if (sb) sb.classList.toggle('expanded'); } catch (e) { }
+        };
+        window.closeSidebar = window.closeSidebar || function () {
+            try { var sb = document.getElementById('sidebar'); if (sb) sb.classList.remove('expanded'); } catch (e) { }
+        };
+    </script>
+</head>
+
+<body>
+    <!-- Main Content Wrapper -->
+    <div class="main-content">
+        <!-- Loading Screen -->
+        <div id="loadingScreen" class="loading-screen hidden">
+            <div class="loading-content">
+                <div class="loading-icon">
+                    <img src="./assets/medfocus-icon.png" alt="MedFocus" />
+                </div>
+                <h2>MedFocus Cards</h2>
+                <div class="loading-spinner"></div>
+                <p>Carregando sistema de estudos...</p>
+            </div>
+        </div>
+
+        <!-- Navbar -->
+        <nav id="navbar" class="navbar">
+            <div class="nav-container">
+                <div class="nav-left">
+                    <button class="sidebar-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+                <div class="nav-brand">
+                    <div class="logo">
+                        <img src="./assets/medfocus-icon.png" alt="MedFocus" />
+                    </div>
+                    <span>MedFocus</span>
+                </div>
+                <div class="nav-right">
+                    <div class="nav-menu" id="navMenu">
+                        <a href="#" class="nav-link" onclick="showPage('homePage')">Início</a>
+                        <a href="#" class="nav-link" onclick="showPage('samplesPage')">Amostras</a>
+                        <a href="#" class="nav-link" onclick="showPage('pricingPage')">Assinar</a>
+                        <a href="#" class="nav-link login-btn" onclick="showPage('loginPage')">Login</a>
+                    </div>
+                    <div class="user-menu hidden" id="userMenu">
+                        <div class="user-avatar" onclick="showAvatarUploadModal()" title="Clique para alterar avatar">
+                            <img id="userAvatarImage" src="" alt="Avatar"
+                                style="display: none; width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                            <i id="userAvatarIcon" class="fas fa-user-circle"></i>
+                        </div>
+                        <span class="user-name" id="userName" style="margin:0 8px; font-weight:500;">
+                            Usuário
+                        </span>
+                        <button class="btn btn--outline btn--sm" onclick="logout()">Sair</button>
+                    </div>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- HOME PAGE -->
+        <section id="homePage" class="page-section active">
+            <div class="hero-section">
+                <div class="hero-content">
+                    <div class="hero-text">
+                        <h1 class="gradient-text">Revolucione seus estudos em Medicina</h1>
+                        <p>Aprenda com flashcards inteligentes, simulados realistas e estatísticas detalhadas. A
+                            plataforma
+                            que transforma estudantes em médicos de sucesso.</p>
+                        <div class="hero-buttons">
+                            <button class="btn btn--primary btn--lg" onclick="showPage('registerPage')">Começar
+                                Agora</button>
+                            <button class="btn btn--outline btn--lg" onclick="showPage('loginPage')">Fazer
+                                Login</button>
+                        </div>
+                    </div>
+                    <div class="hero-illustration">
+                        <div class="medical-icon-container">
+                            <div class="central-icon" aria-hidden="true">
+                                <i class="fas fa-user-md"></i>
+                            </div>
+                            <div class="orbit-icon orbit-1" data-flip role="button" aria-label="Monitoramento cardíaco"
+                                tabindex="0">
+                                <div class="orbit-icon__card">
+                                    <span class="orbit-icon__face orbit-icon__face--front" aria-hidden="true">
+                                        <i class="fas fa-heartbeat"></i>
+                                    </span>
+                                    <span class="orbit-icon__face orbit-icon__face--back" aria-hidden="true">
+                                        <i class="fas fa-heartbeat"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="orbit-icon orbit-2" data-flip role="button" aria-label="Neurociência aplicada"
+                                tabindex="0">
+                                <div class="orbit-icon__card">
+                                    <span class="orbit-icon__face orbit-icon__face--front" aria-hidden="true">
+                                        <i class="fas fa-brain"></i>
+                                    </span>
+                                    <span class="orbit-icon__face orbit-icon__face--back" aria-hidden="true">
+                                        <i class="fas fa-brain"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="orbit-icon orbit-3" data-flip role="button" aria-label="Pesquisa laboratorial"
+                                tabindex="0">
+                                <div class="orbit-icon__card">
+                                    <span class="orbit-icon__face orbit-icon__face--front" aria-hidden="true">
+                                        <i class="fas fa-microscope"></i>
+                                    </span>
+                                    <span class="orbit-icon__face orbit-icon__face--back" aria-hidden="true">
+                                        <i class="fas fa-microscope"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="orbit-icon orbit-4" data-flip role="button" aria-label="Farmacologia prática"
+                                tabindex="0">
+                                <div class="orbit-icon__card">
+                                    <span class="orbit-icon__face orbit-icon__face--front" aria-hidden="true">
+                                        <i class="fas fa-pills"></i>
+                                    </span>
+                                    <span class="orbit-icon__face orbit-icon__face--back" aria-hidden="true">
+                                        <i class="fas fa-pills"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features-section">
+                <div class="container">
+                    <h2>Funcionalidades Principais</h2>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <h3>Flashcards Inteligentes</h3>
+                            <p>Algoritmo de repetição espaçada que adapta o estudo às suas necessidades, priorizando
+                                conceitos que você precisa revisar.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <h3>Simulados Realistas</h3>
+                            <p>Questões cronometradas que simulam provas reais de medicina e residência médica.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h3>Estatísticas Avançadas</h3>
+                            <p>Acompanhe seu progresso com gráficos detalhados e métricas de desempenho.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-user-cog"></i>
+                            </div>
+                            <h3>Área Personalizada</h3>
+                            <p>Crie seus próprios baralhos e personalize sua experiência de estudo.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pricing-section">
+                <div class="container">
+                    <h2>Planos e Preços</h2>
+                    <p>Escolha o plano ideal para sua jornada de estudos</p>
+                    <div class="pricing-grid">
+                        <div class="pricing-card">
+                            <h3>Gratuito</h3>
+                            <div class="price">R$ 0<span>/mês</span></div>
+                            <ul class="features-list">
+                                <li><i class="fas fa-check"></i> 50 flashcards</li>
+                                <li><i class="fas fa-check"></i> 5 simulados</li>
+                                <li><i class="fas fa-check"></i> Estatísticas básicas</li>
+                                <li><i class="fas fa-times"></i> Suporte prioritário</li>
+                            </ul>
+                            <button class="btn btn--outline btn--full-width" onclick="showPage('registerPage')">Começar
+                                Grátis</button>
+                        </div>
+                        <div class="pricing-card popular">
+                            <div class="popular-badge">Mais Popular</div>
+                            <h3>Básico</h3>
+                            <div class="price">R$ 29,90<span>/mês</span></div>
+                            <ul class="features-list">
+                                <li><i class="fas fa-check"></i> 500 flashcards</li>
+                                <li><i class="fas fa-check"></i> 50 simulados</li>
+                                <li><i class="fas fa-check"></i> Estatísticas avançadas</li>
+                                <li><i class="fas fa-check"></i> Suporte por email</li>
+                            </ul>
+                            <button class="btn btn--primary btn--full-width" onclick="showPage('registerPage')">Assinar
+                                Agora</button>
+                        </div>
+                        <div class="pricing-card">
+                            <h3>Premium</h3>
+                            <div class="price">R$ 49,90<span>/mês</span></div>
+                            <ul class="features-list">
+                                <li><i class="fas fa-check"></i> Flashcards ilimitados</li>
+                                <li><i class="fas fa-check"></i> Simulados ilimitados</li>
+                                <li><i class="fas fa-check"></i> Relatórios detalhados</li>
+                                <li><i class="fas fa-check"></i> Suporte prioritário</li>
+                            </ul>
+                            <button class="btn btn--primary btn--full-width" onclick="showPage('registerPage')">Assinar
+                                Premium</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SAMPLES PAGE -->
+        <section id="samplesPage" class="page-section">
+            <div class="container">
+                <div id="samplesAuthMessage" class="auth-required-message">
+                    <div class="card">
+                        <div class="card__body">
+                            <div class="auth-message-content">
+                                <div class="auth-icon">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <h2>Acesso Restrito</h2>
+                                <p>Para experimentar as amostras gratuitas, você precisa fazer login ou criar uma conta.
+                                </p>
+                                <div class="auth-buttons">
+                                    <button class="btn btn--primary" onclick="showPage('registerPage')">Criar
+                                        Conta</button>
+                                    <button class="btn btn--outline" onclick="showPage('loginPage')">Fazer
+                                        Login</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="samplesContent" class="samples-content hidden">
+                    <div class="section-header">
+                        <h1>Amostras Grátis</h1>
+                        <p>Experimente nosso sistema antes de assinar</p>
+                    </div>
+
+                    <div class="samples-grid">
+                        <div class="sample-card">
+                            <div class="sample-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <h3>Flashcards de Anatomia</h3>
+                            <p>Teste 5 flashcards sobre anatomia humana usando nosso sistema de repetição espaçada.</p>
+                            <button class="btn btn--primary" onclick="startSampleFlashcards()">Experimentar</button>
+                        </div>
+                        <div class="sample-card">
+                            <div class="sample-icon">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <h3>Mini Simulado</h3>
+                            <p>Resolva 3 questões sobre anatomia com cronômetro e feedback detalhado.</p>
+                            <button class="btn btn--primary" onclick="startSampleQuiz()">Fazer Teste</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PRICING PAGE -->
+        <section id="pricingPage" class="page-section">
+            <div class="container">
+                <div class="section-header">
+                    <h1>Planos e Preços</h1>
+                    <p>Escolha o plano ideal para maximizar seus estudos em medicina</p>
+                </div>
+
+                <div class="pricing-grid">
+                    <div class="pricing-card">
+                        <h3>Gratuito</h3>
+                        <div class="price">R$ 0<span>/mês</span></div>
+                        <ul class="features-list">
+                            <li><i class="fas fa-check"></i> 50 flashcards</li>
+                            <li><i class="fas fa-check"></i> 5 simulados</li>
+                            <li><i class="fas fa-check"></i> Estatísticas básicas</li>
+                            <li><i class="fas fa-times"></i> Suporte prioritário</li>
+                        </ul>
+                        <button class="btn btn--outline btn--full-width" onclick="showPage('registerPage')">Começar
+                            Grátis</button>
+                    </div>
+                    <div class="pricing-card popular">
+                        <div class="popular-badge">Mais Popular</div>
+                        <h3>Básico</h3>
+                        <div class="price">R$ 29,90<span>/mês</span></div>
+                        <ul class="features-list">
+                            <li><i class="fas fa-check"></i> 500 flashcards</li>
+                            <li><i class="fas fa-check"></i> 50 simulados</li>
+                            <li><i class="fas fa-check"></i> Estatísticas avançadas</li>
+                            <li><i class="fas fa-check"></i> Suporte por email</li>
+                        </ul>
+                        <button class="btn btn--primary btn--full-width" onclick="showPage('registerPage')">Assinar
+                            Agora</button>
+                    </div>
+                    <div class="pricing-card">
+                        <h3>Premium</h3>
+                        <div class="price">R$ 49,90<span>/mês</span></div>
+                        <ul class="features-list">
+                            <li><i class="fas fa-check"></i> Flashcards ilimitados</li>
+                            <li><i class="fas fa-check"></i> Simulados ilimitados</li>
+                            <li><i class="fas fa-check"></i> Relatórios detalhados</li>
+                            <li><i class="fas fa-check"></i> Suporte prioritário</li>
+                        </ul>
+                        <button class="btn btn--primary btn--full-width" onclick="showPage('registerPage')">Assinar
+                            Premium</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LOGIN PAGE -->
+        <section id="loginPage" class="page-section">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <div class="auth-header">
+                        <div class="auth-logo">
+                            <img src="./assets/medfocus-logo.png" alt="MedFocus Cards" />
+                        </div>
+                        <h2>Entrar na sua conta</h2>
+                        <p>Bem-vindo de volta ao MedFocus</p>
+                    </div>
+
+                    <form id="loginForm" class="auth-form">
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="loginEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Senha</label>
+                            <div class="password-input-container">
+                                <input type="password" class="form-control" id="loginPassword" required>
+                                <button type="button" class="password-toggle-btn" id="passwordToggleBtn"
+                                    onclick="togglePasswordVisibility()">
+                                    <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-check">
+                                <input type="checkbox" id="rememberMe" class="form-check-input">
+                                <label for="rememberMe" class="form-check-label">Lembrar-me</label>
+                            </div>
+                            <a href="#" class="forgot-link" onclick="showPasswordRecoveryModal()">Esqueci minha senha</a>
+                        </div>
+                        <button type="submit" class="btn btn--primary btn--full-width">Entrar</button>
+                        <div id="loginError" class="error-message hidden"></div>
+                    </form>
+
+                    <div class="auth-footer">
+                        <p>Não tem conta? <a href="#" onclick="showPage('registerPage')">Cadastre-se aqui</a></p>
+                    </div>
+
+                    <div class="demo-credentials hidden">
+                        <p><strong>Credenciais de demonstração:</strong></p>
+                        <p>Admin: admin@medfocus.com / admin123</p>
+                        <p>Usuário: joao@email.com / 123456</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- REGISTER PAGE -->
+        <section id="registerPage" class="page-section">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <div class="auth-header">
+                        <div class="auth-logo">
+                            <img src="./assets/medfocus-logo.png" alt="MedFocus Cards" />
+                        </div>
+                        <h2>Criar sua conta</h2>
+                        <p>Comece sua jornada de estudos hoje</p>
+                    </div>
+
+                    <form id="registerForm" class="auth-form">
+                        <div class="form-group">
+                            <label class="form-label">Nome completo</label>
+                            <input type="text" class="form-control" id="registerName" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="registerEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Telefone</label>
+                            <input type="tel" class="form-control" id="registerPhone">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Senha</label>
+                            <input type="password" class="form-control" id="registerPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Confirmar senha</label>
+                            <input type="password" class="form-control" id="registerPasswordConfirm" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Plano inicial</label>
+                            <select class="form-control" id="registerPlan">
+                                <option value="free">Gratuito</option>
+                                <option value="basic">Básico - R$ 29,90/mês</option>
+                                <option value="premium">Premium - R$ 49,90/mês</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn--primary btn--full-width">Criar Conta</button>
+                        <div id="registerError" class="error-message hidden"></div>
+                    </form>
+
+                    <div class="auth-footer">
+                        <p>Já tem conta? <a href="#" onclick="showPage('loginPage')">Faça login aqui</a></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DASHBOARD PAGE -->
+        <section id="dashboardPage" class="page-section dashboard-layout">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo">
+                        <img src="./assets/medfocus-icon.png" alt="MedFocus" />
+                        <span>MedFocus</span>
+                    </div>
+                    <button class="sidebar-close" onclick="closeSidebar()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <ul class="sidebar-nav">
+                    <li class="nav-item">
+                        <a href="#overview" class="nav-link active" data-view="overview"
+                            onclick="app.showDashboardView('overview')">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Overview</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#flashcards" class="nav-link" data-view="flashcards"
+                            onclick="app.showDashboardView('flashcards')">
+                            <i class="fas fa-brain"></i>
+                            <span>Flashcards</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#quizzes" class="nav-link" data-view="quizzes"
+                            onclick="app.showDashboardView('quizzes')">
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>Simulados</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#statistics" class="nav-link" data-view="statistics"
+                            onclick="app.showDashboardView('statistics')">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Estatísticas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#profile" class="nav-link" data-view="profile"
+                            onclick="app.showDashboardView('profile')">
+                            <i class="fas fa-user"></i>
+                            <span>Perfil</span>
+                        </a>
+                    </li>
+                    <li class="nav-item admin-only hidden">
+                        <a href="#admin" class="nav-link" data-view="admin" onclick="app.showDashboardView('admin')">
+                            <i class="fas fa-cog"></i>
+                            <span>Administração</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Dashboard Content -->
+            <main id="dashboardMain" class="dashboard-main">
+                <h1 id="dashboardTitle">Overview</h1>
+
+                <!-- Overview Content -->
+                <div id="overviewContent" class="dashboard-view active">
+                    <div class="content-header"
+                        style="margin-bottom:12px; gap:12px; display:flex; align-items:center; flex-wrap:wrap;">
+                        <label>Período
+                            <select id="overviewPeriod" class="form-control" style="min-width: 180px;">
+                                <option value="7">Últimos 7 dias</option>
+                                <option value="30" selected>Últimos 30 dias</option>
+                                <option value="90">Últimos 90 dias</option>
+                                <option value="365">Último ano</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalCards">0</h3>
+                                <p>Total de Cards</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="studiedToday">0</h3>
+                                <p>Estudado Hoje</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="streakDays">0</h3>
+                                <p>Dias Seguidos</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-bullseye"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="accuracyRate">0%</h3>
+                                <p>Taxa de Acerto</p>
+                            </div>
+                        </div>
+                        <div class="stat-card" id="todayStudyTime">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 class="stat-value">00:00</h3>
+                                <p>Tempo Hoje</p>
+                            </div>
+                        </div>
+                        <div class="stat-card" id="totalStudyTime">
+                            <div class="stat-icon">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 class="stat-value">00:00</h3>
+                                <p>Tempo Total</p>
+                            </div>
+                        </div>
+                        <div class="stat-card" id="totalSessions">
+                            <div class="stat-icon">
+                                <i class="fas fa-play-circle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 class="stat-value">0</h3>
+                                <p>Sessões</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card__header">
+                                <h3>Baralhos Recentes</h3>
+                            </div>
+                            <div class="card__body">
+                                <div id="recentDecks" class="recent-decks">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card__header">
+                                <h3>Progresso Diário</h3>
+                            </div>
+                            <div class="card__body">
+                                <div class="chart-container" style="position: relative; height: 300px;">
+                                    <canvas id="progressChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flashcards Content -->
+                <div id="flashcardsContent" class="dashboard-view">
+                    <div class="content-header">
+                        <h2>Meus Baralhos</h2>
+                    </div>
+                    <div id="decksGrid" class="decks-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Quizzes Content -->
+                <div id="quizzesContent" class="dashboard-view">
+                    <div class="content-header">
+                        <h2>Simulados Disponiveis</h2>
+                    </div>
+                    <div id="quizzesGrid" class="quizzes-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Statistics Content -->
+                <div id="statsContent" class="dashboard-view">
+                    <div class="stats-dashboard">
+                        <div class="content-header" style="margin-bottom:16px; gap:12px;">
+                            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                                <label>Matéria
+                                    <select id="statsCategoryFilter" class="form-control"
+                                        style="min-width:180px;"></select>
+                                </label>
+                                <label>Baralho
+                                    <select id="statsDeckFilter" class="form-control" style="min-width:220px;"></select>
+                                </label>
+                                <label>Período
+                                    <select id="statsPeriodFilter" class="form-control" style="min-width:180px;">
+                                        <option value="7">Últimos 7 dias</option>
+                                        <option value="30" selected>Últimos 30 dias</option>
+                                        <option value="90">Últimos 90 dias</option>
+                                        <option value="365">Último ano</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="summaryStats" class="summary-stats">
+                            <!-- Statistical summary cards -->
+                        </div>
+
+                        <div class="charts-container">
+                            <div class="card" style="margin-bottom:16px;">
+                                <div class="card__header">
+                                    <h3>Heatmap de Revisões (12 semanas)</h3>
+                                </div>
+                                <div class="card__body">
+                                    <div id="reviewHeatmap"
+                                        style="display:grid; grid-template-columns: repeat(12, 1fr); gap:6px;"></div>
+                                </div>
+                            </div>
+                            <div class="chart-row">
+                                <div class="card">
+                                    <div class="card__header">
+                                        <h3>Desempenho por Categoria</h3>
+                                    </div>
+                                    <div class="card__body">
+                                        <div class="chart-container" style="position: relative; height: 300px;">
+                                            <canvas id="categoryChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card__header">
+                                        <h3>Progresso por Deck</h3>
+                                    </div>
+                                    <div class="card__body">
+                                        <div class="chart-container" style="position: relative; height: 300px;">
+                                            <canvas id="deckChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-row">
+                                <div class="card">
+                                    <div class="card__header">
+                                        <h3>Performance em Simulados</h3>
+                                    </div>
+                                    <div class="card__body">
+                                        <div class="chart-container" style="position: relative; height: 300px;">
+                                            <canvas id="quizChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card__header">
+                                        <h3>Evolução Mensal</h3>
+                                    </div>
+                                    <div class="card__body">
+                                        <div class="chart-container" style="position: relative; height: 300px;">
+                                            <canvas id="monthlyChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-row">
+                                <div class="card">
+                                    <div class="card__header">
+                                        <h3>Tempo de Estudo Diário</h3>
+                                    </div>
+                                    <div class="card__body">
+                                        <div class="chart-container" style="position: relative; height: 300px;">
+                                            <canvas id="studyTimeChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card__header">
+                                        <h3>Distribuição de Tempo por Deck</h3>
+                                    </div>
+                                    <div class="card__body">
+                                        <div class="chart-container" style="position: relative; height: 300px;">
+                                            <canvas id="timeDistributionChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Content -->
+                <div id="profileContent" class="dashboard-view">
+                    <h2>Meu Perfil</h2>
+                    <div id="profileCard" class="profile-card">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Admin Content -->
+                <div id="adminContent" class="dashboard-view admin-content">
+                    <div class="admin-header">
+                        <h2>Painel Administrativo</h2>
+                        <div class="admin-tabs">
+                            <button class="tab-btn active" data-tab="dashboard"
+                                onclick="switchAdminTab('dashboard', this)">Dashboard</button>
+                            <button class="tab-btn" data-tab="flashcards"
+                                onclick="switchAdminTab('flashcards', this)">Flashcards</button>
+                            <button class="tab-btn" data-tab="quizzes"
+                                onclick="switchAdminTab('quizzes', this)">Simulados</button>
+                            <button class="tab-btn" data-tab="users"
+                                onclick="switchAdminTab('users', this)">Usuários</button>
+                            <button class="tab-btn" data-tab="settings"
+                                onclick="switchAdminTab('settings', this)">Configurações</button>
+                        </div>
+                    </div>
+
+                    <div id="adminDashboard" class="admin-content active">
+                        <div class="admin-stats">
+                            <div class="stat-card">
+                                <h4>Usuários Totais</h4>
+                                <span class="stat-value" id="adminTotalUsers">0</span>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Usuários Ativos</h4>
+                                <span class="stat-value" id="adminActiveUsers">0</span>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Total de Baralhos</h4>
+                                <span class="stat-value" id="adminTotalDecks">0</span>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Receita Mensal</h4>
+                                <span class="stat-value" id="adminMonthlyRevenue">R$ 0</span>
+                            </div>
+                        </div>
+
+                        <div class="admin-charts">
+                            <div class="card">
+                                <div class="card__header">
+                                    <h3>Novos Usuários por Mês</h3>
+                                </div>
+                                <div class="card__body">
+                                    <div class="chart-container" style="position: relative; height: 300px;">
+                                        <canvas id="adminUserChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card__header">
+                                    <h3>Receita por Plano</h3>
+                                </div>
+                                <div class="card__body">
+                                    <div class="chart-container" style="position: relative; height: 300px;">
+                                        <canvas id="adminRevenueChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="adminFlashcards" class="admin-content">
+                        <div class="admin-toolbar">
+                            <button class="btn btn--primary"
+                                onclick="AdminContentManager.showFlashcardUploadModal()">Upload</button>
+                            <button class="btn btn--secondary" onclick="AdminUploader.showFlashcardEditor()">Editor
+                                Visual</button>
+                            <button class="btn btn--outline" onclick="showFlashcardExportModal()">Exportar</button>
+                        </div>
+                        <div id="adminFlashcardsGrid" class="admin-grid">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div id="adminQuizzes" class="admin-content">
+                        <div class="admin-toolbar">
+                            <button class="btn btn--primary"
+                                onclick="AdminContentManager.showSimuladoUploadModal()">Upload
+                                Simulado</button>
+                            <button class="btn btn--secondary" onclick="AdminUploader.showSimuladoEditor()">Criar
+                                Simulado</button>
+                            <button class="btn btn--outline">Editar Simulados</button>
+                        </div>
+                        <div id="adminQuizzesGrid" class="admin-grid">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div id="adminUsers" class="admin-content">
+                        <div class="admin-users__header card">
+                            <div class="card__body admin-users__header-body">
+                                <div class="admin-users__heading">
+                                    <h2 class="admin-section__title">Usuários cadastrados</h2>
+                                    <p class="admin-section__subtitle">Centralize a gestão de usuários, planos e
+                                        permissões
+                                        em um só lugar.</p>
+                                </div>
+                                <button class="btn btn--primary" id="btnNewUser" type="button" onclick="showCreateUserModal()">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span>Novo usuário</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="admin-usuarios-app"></div>
+                    </div>
+
+                    <div id="adminSettings" class="admin-content">
+                        <div class="settings-grid">
+                            <div class="card">
+                                <div class="card__header">
+                                    <h3>Configurações de Preços</h3>
+                                </div>
+                                <div class="card__body">
+                                    <div id="pricingSettings" class="settings-form">
+                                        <!-- Pricing settings form -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card__header">
+                                    <h3>Limites por Plano</h3>
+                                </div>
+                                <div class="card__body">
+                                    <div id="plansSettings" class="settings-form">
+                                        <!-- Plan limits form -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card__header">
+                                    <h3>Backup e Logs</h3>
+                                </div>
+                                <div class="card__body">
+                                    <button class="btn btn--primary" onclick="createBackup()">Criar Backup</button>
+                                    <button class="btn btn--secondary" onclick="showSystemLogs()">Ver Logs do
+                                        Sistema</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </section>
+
+        <!-- STUDY MODE PAGE -->
+        <section id="studyModePage" class="page-section">
+            <div class="study-container">
+                <div class="study-header">
+                    <button class="btn btn--outline" onclick="showPage('dashboardPage')"> Voltar</button>
+                    <h2 id="studyDeckTitle">Anatomia Humana</h2>
+                    <div id="studyProgress" class="study-progress">1 / 10</div>
+
+                    <!-- Cronômetro de Estudo -->
+                    <div class="study-timer-container">
+                        <div class="timer-display">
+                            <i class="fas fa-clock"></i>
+                            <span id="studyTimer" class="timer-text">00:00</span>
+                        </div>
+                        <div class="timer-controls">
+                            <button id="timerStartBtn" class="btn btn--sm btn--primary"
+                                onclick="StudyTimer.startTimer('current')">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button id="timerPauseBtn" class="btn btn--sm btn--outline hidden"
+                                onclick="StudyTimer.pauseTimer()">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            <button id="timerStopBtn" class="btn btn--sm btn--outline" onclick="StudyTimer.stopTimer()">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="study-settings" style="display:flex;gap:12px;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:8px;">
+                            Cartas/dia
+                            <input type="number" id="dailyCardLimit" min="1" value="20" style="width:72px;">
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;">
+                            <input type="checkbox" id="allowOverstudy"> Permitir antecipar
+                        </label>
+                    </div>
+                </div>
+
+                <div id="flashcard" class="flashcard" onclick="flipCard()">
+                    <div class="flashcard-inner">
+                        <div class="card-front">
+                            <div class="card-content" id="cardQuestion">
+                                Clique para começar o estudo
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="card-content">
+                                <div class="answer-text" id="answerText"></div>
+                                <div class="answer-explanation" id="answerExplanation"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="studyActions" class="study-actions">
+                    <button class="btn difficulty-btn again-btn" onclick="answerCard(1)">
+                        <span>Again</span>
+                        <small>1 min</small>
+                        <kbd>1</kbd>
+                    </button>
+                    <button class="btn difficulty-btn hard-btn" onclick="answerCard(2)">
+                        <span>Hard</span>
+                        <small>3 min</small>
+                        <kbd>2</kbd>
+                    </button>
+                    <button class="btn difficulty-btn good-btn" onclick="answerCard(3)">
+                        <span>Good</span>
+                        <small>10 min</small>
+                        <kbd>3</kbd>
+                    </button>
+                    <button class="btn difficulty-btn easy-btn" onclick="answerCard(4)">
+                        <span>Easy</span>
+                        <small>30 min</small>
+                        <kbd>4</kbd>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- QUIZ MODE PAGE -->
+        <section id="quizModePage" class="page-section">
+            <div class="quiz-container">
+                <div class="quiz-header">
+                    <button class="btn btn--outline" onclick="showPage('dashboardPage')">Voltar</button>
+                    <h2 id="quizTitle">Anatomia Básica</h2>
+                    <div id="quizProgress" class="quiz-progress">Questão 1 de 10</div>
+                    <div id="quizTimer" class="quiz-timer">15:00</div>
+                </div>
+
+                <div class="quiz-content">
+                    <div class="quiz-card">
+                        <div id="questionText" class="question-text">
+                            Pergunta aparecerá aqui
+                        </div>
+                        <div id="optionsList" class="options-list">
+                            <!-- Options populated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="quiz-navigation">
+                        <button class="btn btn--outline" onclick="previousQuestion()">Anterior</button>
+                        <button class="btn btn--secondary" onclick="nextQuestion()">Próxima</button>
+                        <button class="btn btn--primary hidden" onclick="finishQuiz()">Finalizar</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- QUIZ RESULTS PAGE -->
+        <section id="quizResultsPage" class="page-section">
+            <div class="results-container">
+                <div class="results-header">
+                    <div class="results-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h1>Simulado Concluído!</h1>
+                </div>
+
+                <div class="results-summary">
+                    <div class="score-circle">
+                        <div class="circle-progress">
+                            <span id="finalScore">85%</span>
+                        </div>
+                    </div>
+
+                    <div class="results-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Questões Corretas</span>
+                            <span class="detail-value" id="correctAnswers">8/10</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Tempo Gasto</span>
+                            <span class="detail-value" id="timeSpent">12:30</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Categoria</span>
+                            <span class="detail-value" id="quizCategory">Anatomia</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-actions">
+                    <button class="btn btn--primary" onclick="showPage('dashboardPage')">Voltar ao Dashboard</button>
+                    <button class="btn btn--outline" onclick="reviewQuiz()">Revisar Questões</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- QUIZ REVIEW PAGE -->
+        <section id="quizReviewPage" class="page-section">
+            <div class="quiz-review-container">
+                <div class="review-header">
+                    <div class="review-title">
+                        <h2>Revisão do Simulado</h2>
+                        <p id="reviewQuizTitle">Título do Simulado</p>
+                    </div>
+                    <div class="review-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Tempo Gasto</span>
+                            <span class="stat-value" id="reviewTimeSpent">00:00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Pontuação</span>
+                            <span class="stat-value" id="reviewScore">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-questions" id="reviewQuestions">
+                    <!-- Questões serão inseridas aqui dinamicamente -->
+                </div>
+
+                <div class="review-actions">
+                    <button class="btn btn--outline" onclick="showPage('quizzesPage')">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar aos Simulados
+                    </button>
+                    <button class="btn btn--primary" onclick="showPage('dashboardPage')">
+                        <i class="fas fa-home"></i>
+                        Ir ao Dashboard
+                    </button>
+                </div>
+            </div>
+        </section><div class="results-container">
+                <div class="results-header">
+                    <div class="results-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <h1>Revisão do Simulado</h1>
+                </div>
+                <div id="quizReviewContainer" class="quiz-review" style="display:grid; gap:16px;"></div>
+                <div class="results-actions" style="margin-top:16px;">
+                    <button class="btn btn--primary" onclick="showPage('dashboardPage')">Voltar ao Dashboard</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODALS -->
+        <!-- Import/Create Deck Modal -->
+        <div id="flashcardUploadModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Criar/Importar Baralho</h3>
+                    <button class="modal-close" onclick="closeModal('flashcardUploadModal')">&times;</button>
+                </div>
+                <form id="importForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">Nome do Baralho</label>
+                            <input type="text" class="form-control" id="flashcardUploadTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Categoria</label>
+                            <select class="form-control" id="flashcardUploadCategory" required>
+                                <option value="">Selecione uma categoria</option>
+                                <option value="anatomia">Anatomia</option>
+                                <option value="fisiologia">Fisiologia</option>
+                                <option value="farmacologia">Farmacologia</option>
+                                <option value="patologia">Patologia</option>
+                                <option value="clinica">Clínica Médica</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tema</label>
+                            <input type="text" class="form-control" id="flashcardUploadTheme"
+                                placeholder="ex.: Sistema locomotor, Esplacnologia...">
+                        </div>
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <p>Arraste arquivos .txt aqui ou clique para selecionar</p>
+                            <input type="file" id="fileInput" accept=".txt" multiple>
+                        </div>
+                        <div id="flashcardPreview" class="file-preview"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--outline"
+                            onclick="closeModal('flashcardUploadModal')">&times;</button>
+                        <button type="button" class="btn btn--primary"
+                            onclick="AdminContentManager.processFlashcardUpload()">Criar Baralho</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Flashcard Modal -->
+        <div id="editFlashcardModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Editar Flashcard</h3>
+                    <button class="modal-close" onclick="closeModal('editFlashcardModal')">&times;</button>
+                </div>
+                <form id="editFlashcardForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editDeckId">
+                        <input type="hidden" id="editCardId">
+                        <div class="form-group">
+                            <label class="form-label">Pergunta</label>
+                            <textarea class="form-control" id="editQuestion" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Resposta</label>
+                            <textarea class="form-control" id="editAnswer" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Explicação</label>
+                            <textarea class="form-control" id="editExplanation" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Categoria</label>
+                            <select class="form-control" id="editCategory">
+                                <option value="anatomia">Anatomia</option>
+                                <option value="fisiologia">Fisiologia</option>
+                                <option value="farmacologia">Farmacologia</option>
+                                <option value="patologia">Patologia</option>
+                                <option value="clinica">Clínica Médica</option>
+                            </select>
+                        </div>
+                        <div id="editFlashcardsContainer" class="edit-flashcards-container">
+                            <!-- Flashcards will be populated here -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--outline"
+                            onclick="closeModal('editFlashcardModal')">&times;</button>
+                        <button type="button" class="btn btn--primary"
+                            onclick="AdminContentManager.saveDeckEdits()">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Quiz Modal -->
+        <div id="editQuizModal" class="modal hidden">
+            <div class="modal-content modal-lg">
+                <div class="modal-header">
+                    <h3>Editar Simulado</h3>
+                    <button class="modal-close" onclick="closeModal('editQuizModal')">&times;</button>
+                </div>
+                <form id="editQuizForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editQuizId">
+                        <div class="form-group">
+                            <label class="form-label">Título</label>
+                            <input type="text" class="form-control" id="editQuizTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Disciplina</label>
+                            <select class="form-control" id="editQuizSubject">
+                                <option value="anatomia">Anatomia</option>
+                                <option value="fisiologia">Fisiologia</option>
+                                <option value="farmacologia">Farmacologia</option>
+                                <option value="patologia">Patologia</option>
+                                <option value="clinica">Clínica Médica</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Descrição</label>
+                            <textarea class="form-control" id="editQuizDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tempo Limite (minutos)</label>
+                            <input type="number" class="form-control" id="editQuizTimeLimit" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Questões</label>
+                            <div id="editQuestionsContainer" class="questions-container">
+                                <!-- Questions populated by JS -->
+                            </div>
+                            <button type="button" class="btn btn--outline btn--sm" onclick="addQuestion()">+ Adicionar
+                                Questão</button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--outline"
+                            onclick="closeModal('editQuizModal')">&times;</button>
+                        <button type="button" class="btn btn--primary"
+                            onclick="AdminContentManager.saveQuizEdits()">Salvar Simulado</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Create User Modal -->
+        <div id="createUserModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Criar Usuário</h3>
+                    <button class="modal-close" onclick="closeCreateUserModal()">&times;</button>
+                </div>
+                <form id="createUserForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">Nome</label>
+                            <input type="text" class="form-control" id="newUserName" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="newUserEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Telefone</label>
+                            <input type="tel" class="form-control" id="newUserPhone">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Senha</label>
+                            <input type="password" class="form-control" id="newUserPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Plano</label>
+                            <select class="form-control" id="newUserPlan">
+                                <option value="free">Gratuito</option>
+                                <option value="basic">Básico</option>
+                                <option value="premium">Premium</option>
+                            </select>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" id="newUserActive" class="form-check-input" checked>
+                            <label for="newUserActive" class="form-check-label">Usuário ativo</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--outline"
+                            onclick="closeCreateUserModal()">&times;</button>
+                        <button type="button" class="btn btn--primary" onclick="createUser()">Criar Usuário</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Password Recovery Modal -->
+        <div id="passwordRecoveryModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Recuperar Senha</h3>
+                    <button class="modal-close" onclick="closePasswordRecoveryModal()">&times;</button>
+                </div>
+                <form id="passwordRecoveryForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="recoveryEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Nova Senha</label>
+                            <input type="password" class="form-control" id="newPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Confirmar Nova Senha</label>
+                            <input type="password" class="form-control" id="confirmNewPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Código de Verificação</label>
+                            <input type="text" class="form-control" id="verificationCode" placeholder="Digite o código enviado por email" required>
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="btn btn--outline" onclick="sendVerificationCode()">Enviar Código</button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--outline" onclick="closePasswordRecoveryModal()">Cancelar</button>
+                        <button type="button" class="btn btn--primary" onclick="resetPassword()">Redefinir Senha</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Flashcard Upload Modal -->
+        <div id="flashcardUploadModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Upload de Flashcards</h3>
+                    <button class="modal-close" onclick="closeModal('flashcardUploadModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Categoria</label>
+                        <select class="form-control" id="uploadCategory">
+                            <option value="anatomia">Anatomia</option>
+                            <option value="fisiologia">Fisiologia</option>
+                            <option value="farmacologia">Farmacologia</option>
+                            <option value="patologia">Patologia</option>
+                            <option value="semiologia">Semiologia</option>
+                            <option value="clinica">Clínica Médica</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tema</label>
+                        <input type="text" id="uploadTheme" class="form-control"
+                            placeholder="ex.: Sistema nervoso, Esplacnologia...">
+                    </div>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <p>Arraste arquivos .txt aqui ou clique para selecionar</p>
+                        <input type="file" id="fileInput" accept=".txt" multiple>
+                    </div>
+                    <div id="filePreview" class="file-preview">
+                        <!-- File preview populated by JS -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--outline"
+                        onclick="closeModal('flashcardUploadModal')">&times;</button>
+                    <button type="button" class="btn btn--primary" onclick="processUpload()">Processar Arquivos</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Upload Modal -->
+        <div id="quizUploadModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Upload de Simulados</h3>
+                    <button class="modal-close" onclick="closeModal('quizUploadModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Titulo do Simulado</label>
+                        <input type="text" id="quizUploadTitle" class="form-control"
+                            placeholder="Usa o nome do arquivo se vazio">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Assunto</label>
+                        <select class="form-control" id="quizUploadSubject">
+                            <option value="anatomia">Anatomia</option>
+                            <option value="clinica">Clinica Medica</option>
+                            <option value="fisiologia">Fisiologia</option>
+                            <option value="farmacologia">Farmacologia</option>
+                            <option value="patologia">Patologia</option>
+                            <option value="semiologia">Semiologia</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tempo limite (minutos)</label>
+                        <input type="number" id="quizUploadTimeLimit" class="form-control" value="30" min="5" max="240">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Descricao</label>
+                        <textarea id="quizUploadDescription" class="form-control" rows="3"
+                            placeholder="Opcional"></textarea>
+                    </div>
+                    <div class="upload-area" id="quizUploadArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <p>Arraste arquivo .txt aqui ou clique para selecionar</p>
+                        <input type="file" id="quizUploadInput" accept=".txt">
+                    </div>
+                    <div id="quizFilePreview" class="file-preview"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--outline"
+                        onclick="closeModal('quizUploadModal')">&times;</button>
+                    <button type="button" class="btn btn--primary"
+                        onclick="AdminContentManager.processSimuladoUpload()">Importar Simulado</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avatar Upload Modal -->
+        <div id="avatarUploadModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Alterar Avatar</h3>
+                    <button class="modal-close" onclick="closeAvatarUploadModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="avatar-upload-container">
+                        <div class="avatar-preview">
+                            <img id="avatarPreview" src="" alt="Preview"
+                                style="display: none; width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 0 auto;">
+                            <div id="avatarPlaceholder"
+                                style="width: 120px; height: 120px; border-radius: 50%; background: var(--color-secondary); display: flex; align-items: center; justify-content: center; margin: 0 auto; color: var(--color-text-secondary);">
+                                <i class="fas fa-user" style="font-size: 48px;"></i>
+                            </div>
+                        </div>
+                        <div class="upload-area" style="margin-top: 20px;">
+                            <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+                            <button type="button" class="btn btn--outline"
+                                onclick="document.getElementById('avatarFileInput').click()">
+                                <i class="fas fa-upload"></i> Escolher Imagem
+                            </button>
+                            <p style="margin-top: 10px; color: var(--color-text-secondary); font-size: 14px;">
+                                Formatos aceitos: JPG, PNG, GIF (máx. 2MB)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--outline" onclick="closeAvatarUploadModal()">Cancelar</button>
+                    <button type="button" class="btn btn--primary" onclick="saveAvatar()">Salvar Avatar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div id="notifications" class="notifications"></div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-left">
+            <span>&copy; 2025 MedFocus Cards</span>
+            <span>&bull;</span>
+            <a href="https://www.medfocuscards.com" target="_blank" rel="noopener">medfocuscards.com</a>
+        </div>
+        <div class="footer-right">
+            <a href="https://www.instagram.com/medfocuscards" target="_blank" rel="noopener"
+                class="social-btn instagram" aria-label="Instagram" title="Instagram">
+                <i class="fa-brands fa-instagram"></i>
+            </a>
+        </div>
+    </footer>
+
+    <script src="./js/app.js" charset="utf-8"></script>
+    <script src="./js/study-timer.js" charset="utf-8"></script>
+    <script src="./js/flashcards-timer-integration.js" charset="utf-8"></script>
+    <script src="./js/admin-content-manager.js" charset="utf-8"></script>
+
+    <script src="./js/stats-index.js" charset="utf-8"></script>
+    <script src="./js/dashboard-overview.js" charset="utf-8"></script>
+    <script src="./js/nav-fallback.js" charset="utf-8"></script>
+    <script src="./js/footer-fix.js" charset="utf-8"></script>
+    <script src="./js/i18n-fix.js" charset="utf-8"></script>
+    <script src="./js/admin-uploads.js" charset="utf-8"></script>
+    <script src="./js/admin-uploader-complete.js" charset="utf-8"></script>
+
+    <script type="module" src="./admin/usuarios/embed.js"></script>
+    <script src="./js/deck-hierarchy.js"></script>
+    
+    <script>
+        // Global functions for user admin modal
+        function showCreateUserModal() {
+            if (window.userAdmin && typeof window.userAdmin.showCreateUserModal === 'function') {
+                window.userAdmin.showCreateUserModal();
+            } else {
+                // Fallback: show the HTML modal directly
+                const modal = document.getElementById('createUserModal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                }
+            }
+        }
+        
+        function closeCreateUserModal() {
+            const modal = document.getElementById('createUserModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+        
+        function createUser() {
+            const form = document.getElementById('createUserForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const userData = {
+                name: document.getElementById('newUserName').value.trim(),
+                email: document.getElementById('newUserEmail').value.trim(),
+                phone: document.getElementById('newUserPhone').value.trim(),
+                password: document.getElementById('newUserPassword').value,
+                plan: document.getElementById('newUserPlan').value,
+                isActive: document.getElementById('newUserActive').checked
+            };
+            
+            // Use userAdmin if available, otherwise fallback
+            if (window.userAdmin && typeof window.userAdmin.createUser === 'function') {
+                window.userAdmin.createUser(userData).then(() => {
+                    closeCreateUserModal();
+                    form.reset();
+                    if (window.userAdmin.loadUsers) {
+                        window.userAdmin.loadUsers();
+                    }
+                }).catch(error => {
+                    console.error('Error creating user:', error);
+                    alert('Erro ao criar usuário');
+                });
+            } else {
+                // Fallback implementation
+                const newUser = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    ...userData,
+                    role: 'student',
+                    createdAt: new Date().toISOString(),
+                    lastLoginAt: null
+                };
+                
+                // Save to localStorage
+                const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+                users.push(newUser);
+                localStorage.setItem('medFocusUsers', JSON.stringify(users));
+                
+                closeCreateUserModal();
+                form.reset();
+                alert('Usuário criado com sucesso!');
+                
+                // Reload the user list if userAdmin is available
+                if (window.userAdmin && window.userAdmin.loadUsers) {
+                    window.userAdmin.loadUsers();
+                }
+            }
+        }
+        
+        // Password recovery functions
+        function showPasswordRecoveryModal() {
+            const modal = document.getElementById('passwordRecoveryModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        }
+        
+        function closePasswordRecoveryModal() {
+            const modal = document.getElementById('passwordRecoveryModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                // Reset form
+                document.getElementById('passwordRecoveryForm').reset();
+            }
+        }
+        
+        function sendVerificationCode() {
+            const email = document.getElementById('recoveryEmail').value.trim();
+            
+            if (!email) {
+                alert('Por favor, digite seu email');
+                return;
+            }
+            
+            // Check if user exists
+            const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+            const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+            
+            if (!user) {
+                alert('Email não encontrado em nossa base de dados');
+                return;
+            }
+            
+            // Generate verification code (in a real app, this would be sent via email)
+            const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            // Store verification code temporarily (in a real app, this would be stored securely)
+            sessionStorage.setItem('passwordRecoveryCode', verificationCode);
+            sessionStorage.setItem('passwordRecoveryEmail', email);
+            sessionStorage.setItem('passwordRecoveryTime', Date.now().toString());
+            
+            // Show the code to the user (in a real app, this would be sent via email)
+            alert(`Código de verificação: ${verificationCode}\n\n(Em um sistema real, este código seria enviado por email)`);
+        }
+        
+        function resetPassword() {
+            const email = document.getElementById('recoveryEmail').value.trim();
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            const verificationCode = document.getElementById('verificationCode').value.trim();
+            
+            // Validation
+            if (!email || !newPassword || !confirmPassword || !verificationCode) {
+                alert('Por favor, preencha todos os campos');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                alert('As senhas não coincidem');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                alert('A senha deve ter pelo menos 6 caracteres');
+                return;
+            }
+            
+            // Check verification code
+            const storedCode = sessionStorage.getItem('passwordRecoveryCode');
+            const storedEmail = sessionStorage.getItem('passwordRecoveryEmail');
+            const storedTime = sessionStorage.getItem('passwordRecoveryTime');
+            
+            if (!storedCode || !storedEmail || !storedTime) {
+                alert('Código de verificação não encontrado. Por favor, solicite um novo código.');
+                return;
+            }
+            
+            // Check if code is expired (5 minutes)
+            if (Date.now() - parseInt(storedTime) > 5 * 60 * 1000) {
+                alert('Código de verificação expirado. Por favor, solicite um novo código.');
+                sessionStorage.removeItem('passwordRecoveryCode');
+                sessionStorage.removeItem('passwordRecoveryEmail');
+                sessionStorage.removeItem('passwordRecoveryTime');
+                return;
+            }
+            
+            if (storedCode !== verificationCode || storedEmail.toLowerCase() !== email.toLowerCase()) {
+                alert('Código de verificação inválido');
+                return;
+            }
+            
+            // Update password
+            const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+            const userIndex = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+            
+            if (userIndex === -1) {
+                alert('Usuário não encontrado');
+                return;
+            }
+            
+            users[userIndex].password = newPassword;
+            localStorage.setItem('medFocusUsers', JSON.stringify(users));
+            
+            // Clear verification data
+            sessionStorage.removeItem('passwordRecoveryCode');
+            sessionStorage.removeItem('passwordRecoveryEmail');
+            sessionStorage.removeItem('passwordRecoveryTime');
+            
+            // Close modal and show success
+            closePasswordRecoveryModal();
+            alert('Senha redefinida com sucesso!');
+            
+            // Notify userAdmin to reload the user list if it exists
+            if (window.userAdmin && typeof window.userAdmin.loadUsers === 'function') {
+                window.userAdmin.loadUsers();
+            }
+        }
+    </script>
+</body>
+
+</html>

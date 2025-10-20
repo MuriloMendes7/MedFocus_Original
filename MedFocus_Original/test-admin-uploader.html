@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin Uploader</title>
+    <link rel="stylesheet" href="./css/admin-editor-styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn--secondary {
+            background: #6c757d;
+        }
+        .btn--secondary:hover {
+            background: #545b62;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Uploader Test Page</h1>
+
+    <div class="test-section">
+        <h2>Flashcard Upload Test</h2>
+        <button class="btn" onclick="testFlashcardUpload()">Test Flashcard Upload Modal</button>
+        <button class="btn btn--secondary" onclick="testParserService()">Test Parser Service</button>
+        <div id="flashcardResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Simulado Upload Test</h2>
+        <button class="btn" onclick="testSimuladoUpload()">Test Simulado Upload Modal</button>
+        <button class="btn btn--secondary" onclick="testSimuladoParser()">Test Simulado Parser</button>
+        <div id="simuladoResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Deck Editor Test</h2>
+        <button class="btn" onclick="testDeckEditor()">Test Deck Editor Modal</button>
+        <button class="btn btn--secondary" onclick="testStorageService()">Test Storage Service</button>
+        <div id="editorResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Integration Test</h2>
+        <button class="btn" onclick="testFullIntegration()">Test Full Integration</button>
+        <div id="integrationResult" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Modals will be inserted here -->
+    <div id="modalContainer"></div>
+
+    <!-- Load scripts -->
+    <script src="./services/parserService.js"></script>
+    <script src="./services/storageService.js"></script>
+    <script src="./admin-uploader.js"></script>
+
+    <script>
+        // Mock localStorage for testing
+        if (typeof Storage === 'undefined') {
+            window.localStorage = {
+                getItem: function(key) { return this[key] || null; },
+                setItem: function(key, value) { this[key] = value; },
+                removeItem: function(key) { delete this[key]; }
+            };
+        }
+
+        // Mock currentUser for testing
+        window.currentUser = {
+            id: 'test_user',
+            name: 'Test User',
+            role: 'admin'
+        };
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+            element.style.display = 'block';
+        }
+
+        function testFlashcardUpload() {
+            try {
+                if (typeof AdminUploader !== 'undefined' && AdminUploader.showFlashcardUploadModal) {
+                    AdminUploader.showFlashcardUploadModal();
+                    showResult('flashcardResult', 'Flashcard upload modal opened successfully!', 'success');
+                } else {
+                    showResult('flashcardResult', 'AdminUploader not loaded or showFlashcardUploadModal not available', 'error');
+                }
+            } catch (error) {
+                showResult('flashcardResult', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        function testParserService() {
+            try {
+                const testContent = `Qual é o maior osso?|Fêmur|O fêmur é o osso da coxa
+Quantas costelas?|24|12 pares de costelas`;
+
+                if (typeof ParserService !== 'undefined' && ParserService.parseFlashcardContent) {
+                    const result = ParserService.parseFlashcardContent(testContent);
+                    showResult('flashcardResult', 'Parser result: ' + JSON.stringify(result, null, 2), 'success');
+                } else {
+                    showResult('flashcardResult', 'ParserService not loaded or parseFlashcardContent not available', 'error');
+                }
+            } catch (error) {
+                showResult('flashcardResult', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        function testSimuladoUpload() {
+            try {
+                if (typeof AdminUploader !== 'undefined' && AdminUploader.showSimuladoUploadModal) {
+                    AdminUploader.showSimuladoUploadModal();
+                    showResult('simuladoResult', 'Simulado upload modal opened successfully!', 'success');
+                } else {
+                    showResult('simuladoResult', 'AdminUploader not loaded or showSimuladoUploadModal not available', 'error');
+                }
+            } catch (error) {
+                showResult('simuladoResult', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        function testSimuladoParser() {
+            try {
+                const testContent = `Qual é a função do coração?|A) Filtrar sangue|B) Bombear sangue|C) Produzir hemácias|D) Armazenar oxigênio|B|O coração bombeia sangue para todo o corpo
+Quantas câmaras?|A) 2|B) 3|C) 4|D) 5|C|O coração tem 4 câmaras`;
+
+                if (typeof ParserService !== 'undefined' && ParserService.parseSimuladoContent) {
+                    const result = ParserService.parseSimuladoContent(testContent);
+                    showResult('simuladoResult', 'Parser result: ' + JSON.stringify(result, null, 2), 'success');
+                } else {
+                    showResult('simuladoResult', 'ParserService not loaded or parseSimuladoContent not available', 'error');
+                }
+            } catch (error) {
+                showResult('simuladoResult', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        function testDeckEditor() {
+            try {
+                if (typeof AdminUploader !== 'undefined' && AdminUploader.showDeckEditor) {
+                    AdminUploader.showDeckEditor();
+                    showResult('editorResult', 'Deck editor modal opened successfully!', 'success');
+                } else {
+                    showResult('editorResult', 'AdminUploader not loaded or showDeckEditor not available', 'error');
+                }
+            } catch (error) {
+                showResult('editorResult', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        function testStorageService() {
+            try {
+                if (typeof StorageService !== 'undefined' && StorageService.saveDeck) {
+                    const testDeck = {
+                        id: 'test_deck_' + Date.now(),
+                        name: 'Test Deck',
+                        category: 'anatomia',
+                        cards: [
+                            {
+                                id: 'test_card_1',
+                                question: 'Test question?',
+                                answer: 'Test answer',
+                                explanation: 'Test explanation'
+                            }
+                        ]
+                    };
+
+                    StorageService.saveDeck(testDeck);
+                    showResult('editorResult', 'Test deck saved successfully!', 'success');
+                } else {
+                    showResult('editorResult', 'StorageService not loaded or saveDeck not available', 'error');
+                }
+            } catch (error) {
+                showResult('editorResult', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        function testFullIntegration() {
+            try {
+                if (typeof AdminUploader !== 'undefined' && AdminUploader.initAdminUploadAndEditors) {
+                    AdminUploader.initAdminUploadAndEditors();
+                    showResult('integrationResult', 'Admin uploader initialized successfully!', 'success');
+                } else {
+                    showResult('integrationResult', 'AdminUploader not loaded or initAdminUploadAndEditors not available', 'error');
+                }
+            } catch (error) {
+                showResult('integrationResult', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Test page loaded');
+            showResult('integrationResult', 'Page loaded. Click buttons to test functionality.', 'info');
+        });
+    </script>
+</body>
+</html>
