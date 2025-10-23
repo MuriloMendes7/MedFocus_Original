@@ -37,7 +37,13 @@ class MedFocusApp {
 
         // Check authentication after short delay
         setTimeout(() => {
+            console.log('Iniciando checkAuth...');
             this.checkAuth();
+            // Restaurar estado após autenticação
+            setTimeout(() => {
+                console.log('Iniciando restoreState...');
+                this.restoreState();
+            }, 200);
         }, 100);
     }
 
@@ -358,7 +364,7 @@ class MedFocusApp {
         const currentUser = localStorage.getItem('medFocusCurrentUser');
         if (currentUser) {
             this.currentUser = JSON.parse(currentUser);
-            this.showPage('dashboardPage');
+            // Não chamar showPage aqui - será feito pelo restoreState
             this.updateUIForLoggedUser();
         } else {
             this.showPage('homePage');
@@ -489,6 +495,7 @@ class MedFocusApp {
 
     logout() {
         localStorage.removeItem('medFocusCurrentUser');
+        localStorage.removeItem('medFocusAppState'); // Limpar estado salvo
         this.currentUser = null;
         this.showPage('homePage');
         this.updateUIForGuest();
@@ -578,6 +585,9 @@ class MedFocusApp {
             page.classList.add('active');
             this.currentPage = pageId;
 
+            // Salvar estado atual no localStorage
+            this.saveCurrentState();
+
             // Load page-specific data
             if (pageId === 'dashboardPage') {
                 this.loadDashboard();
@@ -631,6 +641,9 @@ class MedFocusApp {
             if (titleElement) {
                 titleElement.textContent = titles[viewId] || 'Dashboard';
             }
+
+            // Salvar estado atual no localStorage
+            this.saveCurrentState();
 
             // Load view-specific data
             switch (viewId) {
@@ -966,21 +979,21 @@ class MedFocusApp {
     startCombinedStudy() {
         const selectedDecks = this.getSelectedDecks();
         if (selectedDecks.length === 0) {
-            this.showNotification('Selecione pelo menos um deck para estudar!', 'error');
+            this.showNotification('Selecione pelo menos um deck para estudar!', 'error', 'study');
             return;
         }
 
         // Verificar se há cards nos decks selecionados
         const totalCards = selectedDecks.reduce((sum, deck) => sum + (deck.cards?.length || 0), 0);
         if (totalCards === 0) {
-            this.showNotification('Nenhum card encontrado nos decks selecionados!', 'error');
+            this.showNotification('Nenhum card encontrado nos decks selecionados!', 'error', 'study');
             return;
         }
 
         if (selectedDecks.length === 1) {
             // Estudar deck único
             this.startStudy(selectedDecks[0].id);
-            this.showNotification(`Iniciando estudo do deck: ${selectedDecks[0].name}`, 'success');
+            this.showNotification(`Iniciando estudo do deck: ${selectedDecks[0].name}`, 'success', 'study');
         } else {
             // Estudar múltiplos decks
             this.startCombinedStudySession(selectedDecks);
@@ -1048,7 +1061,7 @@ class MedFocusApp {
 
         this.showPage('studyModePage');
         this.loadCurrentCard();
-        this.showNotification(`Iniciando estudo com ${allCards.length} cards de ${decks.length} decks!`, 'success');
+        this.showNotification(`Iniciando estudo com ${allCards.length} cards de ${decks.length} decks!`, 'success', 'study');
     }
 
     selectAllDecks() {
@@ -1059,7 +1072,7 @@ class MedFocusApp {
         
         this.updateSelectionCounter();
         const selectedCount = deckItems.length;
-        this.showNotification(`${selectedCount} decks selecionados!`, 'success');
+        this.showNotification(`${selectedCount} decks selecionados!`, 'success', 'study');
     }
 
     clearSelection() {
@@ -1069,7 +1082,7 @@ class MedFocusApp {
         });
         
         this.updateSelectionCounter();
-        this.showNotification('Seleção limpa!', 'info');
+        this.showNotification('Seleção limpa!', 'info', 'study');
     }
 
     shuffleArray(array) {
@@ -1155,7 +1168,7 @@ class MedFocusApp {
         const deck = decks.find(d => d.id === deckId);
 
         if (!deck || !deck.cards || deck.cards.length === 0) {
-            this.showNotification('Baralho não encontrado ou vazio!', 'error');
+            this.showNotification('Baralho não encontrado ou vazio!', 'error', 'study');
             return;
         }
 
@@ -1187,7 +1200,7 @@ class MedFocusApp {
                 .sort((a, b) => (a.nextReview > b.nextReview ? 1 : -1));
             selectedCards = upcoming.slice(0, Math.max(1, Math.min(10, limit)));
             if (selectedCards.length === 0) {
-                this.showNotification('Nenhum card disponível neste baralho.', 'info');
+                this.showNotification('Nenhum card disponível neste baralho.', 'info', 'study');
                 return;
             }
         }
@@ -1488,7 +1501,8 @@ class MedFocusApp {
 
         this.showNotification(
             `Sessão concluída! ${reviewed} cards estudados em ${duration} minutos.`,
-            'success'
+            'success',
+            'study'
         );
 
         this.studySession = null;
@@ -1524,12 +1538,21 @@ class MedFocusApp {
 
         const today = new Date().toISOString().split('T')[0];
         const stats = JSON.parse(localStorage.getItem('medFocusUserStats') || '{}');
+        const quizStats = JSON.parse(localStorage.getItem('medFocusStats') || '{}');
         
-        // Calcular tempo total
-        let totalTime = 0;
+        // Calcular tempo total (flashcards + simulados)
+        let totalFlashcardsTime = 0;
+        let totalQuizzesTime = 0;
+        
         Object.values(stats).forEach(dayStats => {
-            totalTime += dayStats.timeSpent || 0;
+            totalFlashcardsTime += dayStats.timeSpent || 0;
         });
+        
+        Object.values(quizStats).forEach(dayStats => {
+            totalQuizzesTime += dayStats.quizzesTime || 0;
+        });
+        
+        const totalTime = totalFlashcardsTime + totalQuizzesTime;
 
         // Atualizar elementos do overview
         const todayTimeElement = document.getElementById('todayStudyTime');
@@ -1537,8 +1560,10 @@ class MedFocusApp {
         const totalSessionsElement = document.getElementById('totalSessions');
 
         if (todayTimeElement) {
-            const todayTime = stats[today]?.timeSpent || 0;
-            todayTimeElement.querySelector('.stat-value').textContent = this.formatTime(todayTime);
+            const todayFlashcardsTime = stats[today]?.timeSpent || 0;
+            const todayQuizzesTime = quizStats[today]?.quizzesTime || 0;
+            const todayTotalTime = todayFlashcardsTime + todayQuizzesTime;
+            todayTimeElement.querySelector('.stat-value').textContent = this.formatTime(todayTotalTime);
         }
 
         if (totalTimeElement) {
@@ -1546,7 +1571,7 @@ class MedFocusApp {
         }
 
         if (totalSessionsElement) {
-            const totalSessions = Object.keys(stats).length;
+            const totalSessions = Object.keys(stats).length + Object.keys(quizStats).length;
             totalSessionsElement.querySelector('.stat-value').textContent = totalSessions;
         }
     }
@@ -1555,6 +1580,69 @@ class MedFocusApp {
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    }
+
+    // === STATE PERSISTENCE ===
+    saveCurrentState() {
+        const state = {
+            currentPage: this.currentPage,
+            currentDashboardView: this.currentDashboardView,
+            timestamp: Date.now()
+        };
+        
+        localStorage.setItem('medFocusAppState', JSON.stringify(state));
+        console.log('Estado salvo:', state);
+        
+        // Debug: verificar se foi salvo corretamente
+        const saved = localStorage.getItem('medFocusAppState');
+        console.log('Estado verificado no localStorage:', saved);
+    }
+
+    restoreState() {
+        try {
+            const savedState = localStorage.getItem('medFocusAppState');
+            if (savedState) {
+                const state = JSON.parse(savedState);
+                
+                // Verificar se o estado não é muito antigo (24 horas)
+                const maxAge = 24 * 60 * 60 * 1000; // 24 horas em ms
+                if (Date.now() - state.timestamp < maxAge) {
+                    console.log('Restaurando estado:', state);
+                    
+                    // Restaurar página atual
+                    if (state.currentPage && state.currentPage !== 'homePage') {
+                        this.showPage(state.currentPage);
+                        
+                        // Se for dashboard, restaurar também a aba
+                        if (state.currentPage === 'dashboardPage' && state.currentDashboardView) {
+                            setTimeout(() => {
+                                this.showDashboardView(state.currentDashboardView);
+                            }, 100);
+                        }
+                    }
+                } else {
+                    console.log('Estado muito antigo, ignorando');
+                    localStorage.removeItem('medFocusAppState');
+                    // Se não há estado válido e usuário está logado, ir para dashboard
+                    if (this.currentUser) {
+                        this.showPage('dashboardPage');
+                    }
+                }
+            } else {
+                // Se não há estado salvo e usuário está logado, ir para dashboard
+                if (this.currentUser) {
+                    console.log('Nenhum estado salvo, indo para dashboard');
+                    this.showPage('dashboardPage');
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao restaurar estado:', error);
+            localStorage.removeItem('medFocusAppState');
+            // Em caso de erro, se usuário está logado, ir para dashboard
+            if (this.currentUser) {
+                this.showPage('dashboardPage');
+            }
+        }
     }
 
     // === QUIZ SYSTEM ===
@@ -1646,7 +1734,7 @@ class MedFocusApp {
         const quiz = quizzes.find(q => q.id === quizId);
 
         if (!quiz || !quiz.questions || quiz.questions.length === 0) {
-            this.showNotification('Simulado não encontrado ou vazio!', 'error');
+            this.showNotification('Simulado não encontrado ou vazio!', 'error', 'quiz');
             return;
         }
 
@@ -1813,31 +1901,167 @@ class MedFocusApp {
             circle.style.background = `conic-gradient(${color} ${percentage}%, var(--color-border) ${percentage}%)`;
         }
 
+        // Salvar tempo de estudo do simulado
+        const timeSpentSeconds = Math.round((new Date() - this.quizSession.startTime) / 1000);
+        this.saveQuizTime(timeSpentSeconds, this.quizSession.quiz.title);
+
         this.showPage('quizResultsPage');
-        this.showNotification(`Quiz concluído! Pontuação: ${percentage}%`, percentage >= 70 ? 'success' : 'info');
+        this.showNotification(`Quiz concluído! Pontuação: ${percentage}%`, percentage >= 70 ? 'success' : 'info', 'quiz');
     }
 
     reviewQuiz() {
-        if (!this.quizSession) return;
-        const container = document.getElementById("quizReviewContainer");
-        if (!container) return;
+        console.log('reviewQuiz método chamado');
+        if (!this.quizSession) {
+            console.error('Nenhuma sessão de quiz ativa');
+            return;
+        }
+        const container = document.getElementById("reviewQuestions");
+        if (!container) {
+            console.error('Container reviewQuestions não encontrado');
+            return;
+        }
+        console.log('Container encontrado, iniciando revisão');
+        
         const quiz = this.quizSession.quiz;
+        const timeSpent = Math.round((new Date() - this.quizSession.startTime) / 1000);
+        const minutes = Math.floor(timeSpent / 60);
+        const seconds = timeSpent % 60;
+        
+        // Atualizar tempo gasto na revisão
+        const timeSpentEl = document.getElementById('reviewTimeSpent');
+        if (timeSpentEl) {
+            timeSpentEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // Atualizar pontuação
+        const scoreEl = document.getElementById('reviewScore');
+        if (scoreEl) {
+            let correct = 0;
+            quiz.questions.forEach(question => {
+                if (this.quizSession.answers[question.id] === question.correct) {
+                    correct++;
+                }
+            });
+            const percentage = Math.round((correct / quiz.questions.length) * 100);
+            scoreEl.textContent = `${percentage}%`;
+        }
+        
         container.innerHTML = "";
         quiz.questions.forEach((q, idx) => {
-            const user = this.quizSession.answers[q.id];
-            const correct = q.correct;
+            const userAnswer = this.quizSession.answers[q.id];
+            const correctAnswer = q.correct;
+            const isCorrect = userAnswer === correctAnswer;
+            
             const block = document.createElement("div");
-            block.className = "quiz-card";
-            const optionsHtml = q.options.map((opt, i) => {
+            block.className = "quiz-review-card";
+            block.style.cssText = `
+                background: var(--color-card-bg);
+                border: 1px solid var(--color-card-border);
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 16px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            `;
+            
+            // Status da questão (certa/errada)
+            const statusEl = document.createElement("div");
+            statusEl.style.cssText = `
+                display: flex;
+                align-items: center;
+                margin-bottom: 12px;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 14px;
+            `;
+            
+            if (isCorrect) {
+                statusEl.style.background = '#d4edda';
+                statusEl.style.color = '#155724';
+                statusEl.style.border = '1px solid #c3e6cb';
+                statusEl.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i>Resposta Correta';
+            } else {
+                statusEl.style.background = '#f8d7da';
+                statusEl.style.color = '#721c24';
+                statusEl.style.border = '1px solid #f5c6cb';
+                statusEl.innerHTML = '<i class="fas fa-times-circle" style="margin-right: 8px;"></i>Resposta Incorreta';
+            }
+            
+            // Questão
+            const questionEl = document.createElement("div");
+            questionEl.style.cssText = `
+                font-weight: 600;
+                margin-bottom: 16px;
+                font-size: 16px;
+                line-height: 1.4;
+            `;
+            questionEl.textContent = `${idx + 1}. ${q.question}`;
+            
+            // Opções
+            const optionsContainer = document.createElement("div");
+            optionsContainer.style.cssText = `
+                margin-bottom: 16px;
+            `;
+            
+            q.options.forEach((opt, i) => {
                 const letter = String.fromCharCode(65 + i); // A, B, C, D
-                let cls = "option";
-                if (letter === correct) cls += " correct";
-                if (user && letter === user && user !== correct) cls += " wrong";
-                return `<div class="${cls}" style="padding:8px;border-radius:8px;border:1px solid var(--color-card-border);margin-bottom:6px;"><strong style="margin-right:8px;">${letter})</strong> ${opt}</div>`;
-            }).join("");
-            block.innerHTML = `<div class="question-text" style="margin-bottom:8px;">${idx + 1}. ${q.question}</div>${optionsHtml}<div class="answer-explanation" style="margin-top:8px;">${q.explanation || ""}</div>`;
+                const optionEl = document.createElement("div");
+                optionEl.style.cssText = `
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin-bottom: 8px;
+                    border: 2px solid;
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                `;
+                
+                if (letter === correctAnswer) {
+                    // Resposta correta - verde
+                    optionEl.style.background = '#d4edda';
+                    optionEl.style.borderColor = '#28a745';
+                    optionEl.style.color = '#155724';
+                } else if (userAnswer && letter === userAnswer && !isCorrect) {
+                    // Resposta do usuário (errada) - vermelho
+                    optionEl.style.background = '#f8d7da';
+                    optionEl.style.borderColor = '#dc3545';
+                    optionEl.style.color = '#721c24';
+                } else {
+                    // Outras opções - neutro
+                    optionEl.style.background = 'var(--color-card-bg)';
+                    optionEl.style.borderColor = 'var(--color-card-border)';
+                    optionEl.style.color = 'var(--color-text-secondary)';
+                }
+                
+                optionEl.innerHTML = `<strong style="margin-right: 8px;">${letter})</strong> ${opt}`;
+                optionsContainer.appendChild(optionEl);
+            });
+            
+            // Explicação
+            const explanationEl = document.createElement("div");
+            if (q.explanation) {
+                explanationEl.style.cssText = `
+                    background: #e7f3ff;
+                    border: 1px solid #b3d9ff;
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin-top: 12px;
+                    font-size: 14px;
+                    line-height: 1.5;
+                `;
+                explanationEl.innerHTML = `<strong>Explicação:</strong> ${q.explanation}`;
+            }
+            
+            // Montar o card
+            block.appendChild(statusEl);
+            block.appendChild(questionEl);
+            block.appendChild(optionsContainer);
+            if (q.explanation) {
+                block.appendChild(explanationEl);
+            }
+            
             container.appendChild(block);
         });
+        
         this.showPage("quizReviewPage");
     }
 
@@ -2311,46 +2535,282 @@ class MedFocusApp {
 
     loadUsersTable() {
         const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
-        const table = document.getElementById('usersTable');
-        if (!table) return;
+        const tableBody = document.getElementById('usersTableBody');
+        if (!tableBody) return;
 
-        let html = `
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Email</th>
-                    <th>Função</th> <th>Plano</th>
-                    <th>Status</th>
-                    <th>Último Login</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-        `;
+        // Ordenar usuários por data de cadastro (mais recentes primeiro)
+        const sortedUsers = users.sort((a, b) => new Date(b.createdAt || b.created) - new Date(a.createdAt || a.created));
 
-        users.forEach(user => {
-            const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('pt-BR') : 'N/A';
+        let html = '';
+        sortedUsers.forEach(user => {
+            const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('pt-BR') : 'Nunca';
+            const createdAt = user.createdAt || user.created;
+            const createdDate = createdAt ? new Date(createdAt).toLocaleDateString('pt-BR') : 'N/A';
             const isActive = user.isActive === true || user.isActive === 'true';
             const statusClass = isActive ? 'success' : 'error';
             const statusText = isActive ? 'Ativo' : 'Inativo';
+            const planText = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Gratuito';
 
             html += `
-                <tr>
-                    <td>${user.name}</td>
-                    <td>${user.email}</td>
-                    <td>${user.role}</td>
-                    <td>${user.plan}</td>
-                    <td><span class="status status--${statusClass}">${statusText}</span></td>
-                    <td>${lastLogin}</td>
+                <tr data-user-id="${user.id}">
                     <td>
-                        <button class="btn btn--outline btn--sm" onclick="deleteUser('${user.id}')">Excluir</button>
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="user-details">
+                                <strong>${user.name || 'Nome não informado'}</strong>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${user.email}</td>
+                    <td>
+                        <span class="role-badge role-badge--${user.role}">${user.role}</span>
+                    </td>
+                    <td>
+                        <span class="plan-badge plan-badge--${user.plan || 'free'}">${planText}</span>
+                    </td>
+                    <td>
+                        <span class="status status--${statusClass}">${statusText}</span>
+                    </td>
+                    <td>${lastLogin}</td>
+                    <td>${createdDate}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn--sm btn--outline" onclick="editUser('${user.id}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn--sm btn--outline" onclick="toggleUserStatus('${user.id}')" title="${isActive ? 'Desativar' : 'Ativar'}">
+                                <i class="fas fa-${isActive ? 'ban' : 'check'}"></i>
+                            </button>
+                            <button class="btn btn--sm btn--danger" onclick="deleteUser('${user.id}')" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
         });
 
-        html += '</tbody>';
-        table.innerHTML = html;
+        tableBody.innerHTML = html;
+        this.updateUsersCount(sortedUsers.length);
+        this.filteredUsers = sortedUsers; // Armazenar para filtros
+    }
+
+    updateUsersCount(count) {
+        const countElement = document.getElementById('usersCount');
+        if (countElement) {
+            countElement.textContent = `${count} usuário${count !== 1 ? 's' : ''} encontrado${count !== 1 ? 's' : ''}`;
+        }
+    }
+
+    filterUsers() {
+        const searchName = document.getElementById('searchName')?.value.toLowerCase() || '';
+        const searchEmail = document.getElementById('searchEmail')?.value.toLowerCase() || '';
+        const searchPlan = document.getElementById('searchPlan')?.value || '';
+        const searchStatus = document.getElementById('searchStatus')?.value || '';
+
+        const allUsers = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+        
+        const filtered = allUsers.filter(user => {
+            const nameMatch = !searchName || (user.name && user.name.toLowerCase().includes(searchName));
+            const emailMatch = !searchEmail || user.email.toLowerCase().includes(searchEmail);
+            const planMatch = !searchPlan || (user.plan || 'free') === searchPlan;
+            const statusMatch = !searchStatus || 
+                (searchStatus === 'active' && (user.isActive === true || user.isActive === 'true')) ||
+                (searchStatus === 'inactive' && (user.isActive === false || user.isActive === 'false'));
+
+            return nameMatch && emailMatch && planMatch && statusMatch;
+        });
+
+        this.displayFilteredUsers(filtered);
+    }
+
+    displayFilteredUsers(users) {
+        const tableBody = document.getElementById('usersTableBody');
+        if (!tableBody) return;
+
+        let html = '';
+        users.forEach(user => {
+            const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('pt-BR') : 'Nunca';
+            const createdAt = user.createdAt || user.created;
+            const createdDate = createdAt ? new Date(createdAt).toLocaleDateString('pt-BR') : 'N/A';
+            const isActive = user.isActive === true || user.isActive === 'true';
+            const statusClass = isActive ? 'success' : 'error';
+            const statusText = isActive ? 'Ativo' : 'Inativo';
+            const planText = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Gratuito';
+
+            html += `
+                <tr data-user-id="${user.id}">
+                    <td>
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="user-details">
+                                <strong>${user.name || 'Nome não informado'}</strong>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${user.email}</td>
+                    <td>
+                        <span class="role-badge role-badge--${user.role}">${user.role}</span>
+                    </td>
+                    <td>
+                        <span class="plan-badge plan-badge--${user.plan || 'free'}">${planText}</span>
+                    </td>
+                    <td>
+                        <span class="status status--${statusClass}">${statusText}</span>
+                    </td>
+                    <td>${lastLogin}</td>
+                    <td>${createdDate}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn--sm btn--outline" onclick="editUser('${user.id}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn--sm btn--outline" onclick="toggleUserStatus('${user.id}')" title="${isActive ? 'Desativar' : 'Ativar'}">
+                                <i class="fas fa-${isActive ? 'ban' : 'check'}"></i>
+                            </button>
+                            <button class="btn btn--sm btn--danger" onclick="deleteUser('${user.id}')" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tableBody.innerHTML = html;
+        this.updateUsersCount(users.length);
+    }
+
+    toggleUserStatus(userId) {
+        const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+        const userIndex = users.findIndex(u => u.id === userId);
+        
+        if (userIndex !== -1) {
+            const user = users[userIndex];
+            const newStatus = !(user.isActive === true || user.isActive === 'true');
+            users[userIndex].isActive = newStatus;
+            
+            localStorage.setItem('medFocusUsers', JSON.stringify(users));
+            
+            this.showNotification(
+                `Usuário ${newStatus ? 'ativado' : 'desativado'} com sucesso!`, 
+                'success'
+            );
+            
+            this.loadUsersTable();
+        }
+    }
+
+    editUser(userId) {
+        const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+        const user = users.find(u => u.id === userId);
+        
+        if (user) {
+            // Preencher modal de edição
+            document.getElementById('editUserName').value = user.name || '';
+            document.getElementById('editUserEmail').value = user.email || '';
+            document.getElementById('editUserPhone').value = user.phone || '';
+            document.getElementById('editUserPlan').value = user.plan || 'free';
+            document.getElementById('editUserRole').value = user.role || 'user';
+            
+            // Mostrar modal
+            const modal = document.getElementById('editUserModal');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.setAttribute('data-user-id', userId);
+            }
+        }
+    }
+
+    // === ADMIN SETTINGS ===
+    loadAdminSettings() {
+        if (!this.currentUser || this.currentUser.role !== 'admin') return;
+
+        // Carregar configurações de preços
+        this.loadPricingSettings();
+        
+        // Carregar limites de planos
+        this.loadPlanLimits();
+        
+        // Carregar status de backup
+        this.loadBackupStatus();
+    }
+
+    loadPricingSettings() {
+        const settings = JSON.parse(localStorage.getItem('medFocusPricingSettings') || '{}');
+        
+        // Valores padrão
+        const defaultPrices = {
+            basicMonthly: 29.90,
+            basicYearly: 299.90,
+            premiumMonthly: 59.90,
+            premiumYearly: 599.90
+        };
+
+        const prices = { ...defaultPrices, ...settings };
+
+        // Atualizar campos
+        const fields = {
+            'basicMonthlyPrice': prices.basicMonthly,
+            'basicYearlyPrice': prices.basicYearly,
+            'premiumMonthlyPrice': prices.premiumMonthly,
+            'premiumYearlyPrice': prices.premiumYearly
+        };
+
+        Object.entries(fields).forEach(([id, value]) => {
+            const field = document.getElementById(id);
+            if (field) field.value = value;
+        });
+    }
+
+    loadPlanLimits() {
+        const settings = JSON.parse(localStorage.getItem('medFocusPlanLimits') || '{}');
+        
+        // Valores padrão
+        const defaultLimits = {
+            free: { decks: 3, cards: 50, quizzes: 2 },
+            basic: { decks: 20, cards: 200, quizzes: 15 },
+            premium: { decks: 999, cards: 999, quizzes: 999 }
+        };
+
+        const limits = { ...defaultLimits, ...settings };
+
+        // Atualizar campos
+        const fields = {
+            'freeMaxDecks': limits.free.decks,
+            'freeMaxCards': limits.free.cards,
+            'freeMaxQuizzes': limits.free.quizzes,
+            'basicMaxDecks': limits.basic.decks,
+            'basicMaxCards': limits.basic.cards,
+            'basicMaxQuizzes': limits.basic.quizzes,
+            'premiumMaxDecks': limits.premium.decks,
+            'premiumMaxCards': limits.premium.cards,
+            'premiumMaxQuizzes': limits.premium.quizzes
+        };
+
+        Object.entries(fields).forEach(([id, value]) => {
+            const field = document.getElementById(id);
+            if (field) field.value = value;
+        });
+    }
+
+    loadBackupStatus() {
+        const backupInfo = JSON.parse(localStorage.getItem('medFocusBackupInfo') || '{}');
+        
+        const lastBackupDate = document.getElementById('lastBackupDate');
+        const backupSize = document.getElementById('backupSize');
+        
+        if (lastBackupDate) {
+            lastBackupDate.textContent = backupInfo.lastBackup || 'Nenhum backup realizado';
+        }
+        
+        if (backupSize) {
+            backupSize.textContent = backupInfo.size || '-';
+        }
     }
 
     createUserFromAdmin() {
@@ -2480,6 +2940,11 @@ class MedFocusApp {
         const tabContent = document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1));
         if (tabContent) {
             tabContent.classList.add('active');
+        }
+
+        // Carregar dados específicos da aba
+        if (tab === 'settings') {
+            this.loadAdminSettings();
         }
     }
 
@@ -2706,56 +3171,54 @@ class MedFocusApp {
         const currentTheme = document.documentElement.getAttribute('data-color-scheme') || 'light';
         const newTheme = currentTheme === 'light' ? 'dark' : 'light';
 
+        // Update the data attribute
         document.documentElement.setAttribute('data-color-scheme', newTheme);
+        
+        // Save to localStorage
         localStorage.setItem('medFocusTheme', newTheme);
 
+        // Update theme toggle button icon
+        this.updateThemeToggleIcon(newTheme);
+
+        // Show notification
         this.showNotification(`Tema ${newTheme === 'dark' ? 'escuro' : 'claro'} ativado!`, 'info');
         
-        // Apply styles immediately after theme change
-        if (newTheme === 'dark') {
-            setTimeout(() => {
-                this.applyDarkModeStyles();
-            }, 100);
-        }
+        // Force a re-render to ensure all elements pick up the new theme
+        this.forceThemeUpdate();
     }
 
     loadTheme() {
         const savedTheme = localStorage.getItem('medFocusTheme') || 'light';
         document.documentElement.setAttribute('data-color-scheme', savedTheme);
         
-        // Ensure theme is applied immediately
-        if (savedTheme === 'dark') {
-            this.applyDarkModeStyles();
+        // Update theme toggle button icon
+        this.updateThemeToggleIcon(savedTheme);
+        
+        // Force a re-render to ensure all elements pick up the theme
+        this.forceThemeUpdate();
+    }
+    
+    updateThemeToggleIcon(theme) {
+        const themeToggle = document.querySelector('.theme-toggle i');
+        if (themeToggle) {
+            themeToggle.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         }
     }
     
-    applyDarkModeStyles() {
-        // Apply dark mode styles to specific elements
-        const cards = document.querySelectorAll('.card, .stat-card, .recent-deck-item, .chart-container');
-        cards.forEach(card => {
-            card.style.backgroundColor = '#2d2d2d';
-            card.style.color = '#ffffff';
-        });
-        
-        // Apply to all text elements within cards
-        const textElements = document.querySelectorAll('.card *, .stat-card *, .recent-deck-item *, .chart-container *');
-        textElements.forEach(element => {
-            if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName)) {
-                element.style.color = '#ffffff';
-            }
-        });
-        
-        // Apply to select elements
-        const selects = document.querySelectorAll('select');
-        selects.forEach(select => {
-            select.style.backgroundColor = '#2d2d2d';
-            select.style.color = '#ffffff';
-            select.style.borderColor = '#555555';
-        });
+    forceThemeUpdate() {
+        // Force a re-render by temporarily toggling a class
+        document.body.style.display = 'none';
+        document.body.offsetHeight; // Trigger reflow
+        document.body.style.display = '';
     }
 
     // === NOTIFICATION SYSTEM ===
-    showNotification(message, type = 'info') {
+    showNotification(message, type = 'info', context = 'general') {
+        // Verificar se deve mostrar notificação baseado no contexto
+        if (!this.shouldShowNotification(context)) {
+            return;
+        }
+
         const notifications = document.getElementById('notifications');
         if (!notifications) return;
 
@@ -2770,6 +3233,29 @@ class MedFocusApp {
                 notification.remove();
             }
         }, 4000);
+    }
+
+    // Verificar se deve mostrar notificação baseado no contexto
+    shouldShowNotification(context) {
+        // Se for notificação geral, sempre mostrar
+        if (context === 'general') {
+            return true;
+        }
+
+        // Se for notificação de quiz, só mostrar na aba de simulados
+        if (context === 'quiz') {
+            const currentView = this.currentDashboardView || 'overview';
+            return currentView === 'quizzes';
+        }
+
+        // Se for notificação de estudo, só mostrar na aba de flashcards
+        if (context === 'study') {
+            const currentView = this.currentDashboardView || 'overview';
+            return currentView === 'flashcards';
+        }
+
+        // Para outros contextos, sempre mostrar
+        return true;
     }
 
     showError(container, message) {
@@ -3016,6 +3502,262 @@ window.navigateToHome = () => {
     }
 };
 
+// Função de debug para testar persistência de estado
+window.debugState = () => {
+    if (window.app) {
+        console.log('Estado atual:', {
+            currentPage: window.app.currentPage,
+            currentDashboardView: window.app.currentDashboardView
+        });
+        
+        const saved = localStorage.getItem('medFocusAppState');
+        console.log('Estado salvo:', saved ? JSON.parse(saved) : 'Nenhum');
+        
+        // Testar salvamento
+        window.app.saveCurrentState();
+        
+        // Testar restauração
+        setTimeout(() => {
+            window.app.restoreState();
+        }, 1000);
+    }
+};
+
+// === ADMIN SETTINGS FUNCTIONS ===
+window.savePricingSettings = () => {
+    if (window.app) {
+        const prices = {
+            basicMonthly: parseFloat(document.getElementById('basicMonthlyPrice').value) || 29.90,
+            basicYearly: parseFloat(document.getElementById('basicYearlyPrice').value) || 299.90,
+            premiumMonthly: parseFloat(document.getElementById('premiumMonthlyPrice').value) || 59.90,
+            premiumYearly: parseFloat(document.getElementById('premiumYearlyPrice').value) || 599.90
+        };
+        
+        localStorage.setItem('medFocusPricingSettings', JSON.stringify(prices));
+        window.app.showNotification('Preços salvos com sucesso!', 'success');
+    }
+};
+
+window.resetPricingSettings = () => {
+    if (window.app) {
+        localStorage.removeItem('medFocusPricingSettings');
+        window.app.loadPricingSettings();
+        window.app.showNotification('Preços restaurados para o padrão!', 'info');
+    }
+};
+
+window.savePlanLimits = () => {
+    if (window.app) {
+        const limits = {
+            free: {
+                decks: parseInt(document.getElementById('freeMaxDecks').value) || 3,
+                cards: parseInt(document.getElementById('freeMaxCards').value) || 50,
+                quizzes: parseInt(document.getElementById('freeMaxQuizzes').value) || 2
+            },
+            basic: {
+                decks: parseInt(document.getElementById('basicMaxDecks').value) || 20,
+                cards: parseInt(document.getElementById('basicMaxCards').value) || 200,
+                quizzes: parseInt(document.getElementById('basicMaxQuizzes').value) || 15
+            },
+            premium: {
+                decks: parseInt(document.getElementById('premiumMaxDecks').value) || 999,
+                cards: parseInt(document.getElementById('premiumMaxCards').value) || 999,
+                quizzes: parseInt(document.getElementById('premiumMaxQuizzes').value) || 999
+            }
+        };
+        
+        localStorage.setItem('medFocusPlanLimits', JSON.stringify(limits));
+        window.app.showNotification('Limites salvos com sucesso!', 'success');
+    }
+};
+
+window.resetPlanLimits = () => {
+    if (window.app) {
+        localStorage.removeItem('medFocusPlanLimits');
+        window.app.loadPlanLimits();
+        window.app.showNotification('Limites restaurados para o padrão!', 'info');
+    }
+};
+
+window.createBackup = () => {
+    if (window.app) {
+        try {
+            const backupData = {
+                users: JSON.parse(localStorage.getItem('medFocusUsers') || '[]'),
+                decks: JSON.parse(localStorage.getItem('medFocusDecks') || '[]'),
+                quizzes: JSON.parse(localStorage.getItem('medFocusQuizzes') || '[]'),
+                settings: {
+                    pricing: JSON.parse(localStorage.getItem('medFocusPricingSettings') || '{}'),
+                    planLimits: JSON.parse(localStorage.getItem('medFocusPlanLimits') || '{}')
+                },
+                timestamp: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const backupJson = JSON.stringify(backupData, null, 2);
+            const backupSize = (new Blob([backupJson]).size / 1024 / 1024).toFixed(2);
+            
+            // Salvar informações do backup
+            const backupInfo = {
+                lastBackup: new Date().toLocaleString('pt-BR'),
+                size: backupSize,
+                timestamp: new Date().toISOString()
+            };
+            
+            localStorage.setItem('medFocusBackupInfo', JSON.stringify(backupInfo));
+            localStorage.setItem('medFocusBackupData', backupJson);
+            
+            window.app.loadBackupStatus();
+            window.app.showNotification(`Backup criado com sucesso! Tamanho: ${backupSize} MB`, 'success');
+        } catch (error) {
+            console.error('Erro ao criar backup:', error);
+            window.app.showNotification('Erro ao criar backup!', 'error');
+        }
+    }
+};
+
+window.downloadBackup = () => {
+    const backupData = localStorage.getItem('medFocusBackupData');
+    if (backupData) {
+        const blob = new Blob([backupData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `medfocus-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        window.app.showNotification('Backup baixado com sucesso!', 'success');
+    } else {
+        window.app.showNotification('Nenhum backup encontrado!', 'error');
+    }
+};
+
+window.checkBackupStatus = () => {
+    if (window.app) {
+        window.app.loadBackupStatus();
+        window.app.showNotification('Status do backup atualizado!', 'info');
+    }
+};
+
+window.showSystemLogs = () => {
+    const logs = JSON.parse(localStorage.getItem('medFocusSystemLogs') || '[]');
+    
+    if (logs.length === 0) {
+        window.app.showNotification('Nenhum log encontrado!', 'info');
+        return;
+    }
+    
+    const logsHtml = logs.map(log => `
+        <div class="log-entry">
+            <div class="log-header">
+                <span class="log-level log-level--${log.level}">${log.level.toUpperCase()}</span>
+                <span class="log-timestamp">${new Date(log.timestamp).toLocaleString('pt-BR')}</span>
+            </div>
+            <div class="log-message">${log.message}</div>
+        </div>
+    `).join('');
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 800px; max-height: 600px;">
+            <div class="modal-header">
+                <h3>Logs do Sistema</h3>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto;">
+                <div class="logs-container">
+                    ${logsHtml}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--outline" onclick="clearSystemLogs()">Limpar Logs</button>
+                <button class="btn btn--secondary" onclick="this.closest('.modal').remove()">Fechar</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+};
+
+// === USER MANAGEMENT FUNCTIONS ===
+window.filterUsers = () => {
+    if (window.app) {
+        window.app.filterUsers();
+    }
+};
+
+window.clearUserSearch = () => {
+    document.getElementById('searchName').value = '';
+    document.getElementById('searchEmail').value = '';
+    document.getElementById('searchPlan').value = '';
+    document.getElementById('searchStatus').value = '';
+    
+    if (window.app) {
+        window.app.loadUsersTable();
+    }
+};
+
+window.exportUsers = () => {
+    const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+    
+    if (users.length === 0) {
+        window.app.showNotification('Nenhum usuário para exportar!', 'error');
+        return;
+    }
+    
+    let csv = 'Nome,Email,Telefone,Função,Plano,Status,Último Login,Data de Cadastro\n';
+    
+    users.forEach(user => {
+        const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('pt-BR') : 'Nunca';
+        const createdAt = user.createdAt || user.created;
+        const createdDate = createdAt ? new Date(createdAt).toLocaleDateString('pt-BR') : 'N/A';
+        const isActive = user.isActive === true || user.isActive === 'true';
+        const status = isActive ? 'Ativo' : 'Inativo';
+        const plan = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Gratuito';
+        
+        csv += `"${user.name || ''}","${user.email}","${user.phone || ''}","${user.role}","${plan}","${status}","${lastLogin}","${createdDate}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `usuarios-medfocus-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    window.app.showNotification('Usuários exportados com sucesso!', 'success');
+};
+
+window.toggleUserStatus = (userId) => {
+    if (window.app) {
+        window.app.toggleUserStatus(userId);
+    }
+};
+
+window.editUser = (userId) => {
+    if (window.app) {
+        window.app.editUser(userId);
+    }
+};
+
+window.deleteUser = (userId) => {
+    if (confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
+        const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+        const filteredUsers = users.filter(u => u.id !== userId);
+        
+        localStorage.setItem('medFocusUsers', JSON.stringify(filteredUsers));
+        
+        window.app.showNotification('Usuário excluído com sucesso!', 'success');
+        window.app.loadUsersTable();
+    }
+};
+
 window.startSampleFlashcards = () => {
     if (window.app) {
         window.app.startSampleFlashcards();
@@ -3077,8 +3819,19 @@ window.finishQuiz = () => {
 };
 
 window.reviewQuiz = () => {
+    console.log('reviewQuiz chamada');
     if (window.app) {
-        window.app.reviewQuiz();
+        console.log('App encontrado, verificando quizSession:', window.app.quizSession);
+        // Verificar se há sessão de quiz ativa
+        if (window.app.quizSession) {
+            console.log('Iniciando revisão do quiz');
+            window.app.reviewQuiz();
+        } else {
+            console.error('Nenhuma sessão de quiz ativa para revisão');
+            window.app.showNotification('Nenhuma sessão de quiz ativa para revisão', 'error', 'quiz');
+        }
+    } else {
+        console.error('App não encontrado');
     }
 };
 
@@ -4017,7 +4770,8 @@ MedFocusApp.prototype.saveQuizTime = function(timeSpentSeconds, quizTitle) {
             totalTime: 0,
             sessions: 0,
             cardsStudied: 0,
-            quizzesCompleted: 0
+            quizzesCompleted: 0,
+            quizDetails: []
         };
     }
     
@@ -4026,10 +4780,23 @@ MedFocusApp.prototype.saveQuizTime = function(timeSpentSeconds, quizTitle) {
     dayStats.totalTime = dayStats.flashcardsTime + dayStats.quizzesTime;
     dayStats.quizzesCompleted += 1;
     
+    // Salvar detalhes do simulado
+    if (!dayStats.quizDetails) {
+        dayStats.quizDetails = [];
+    }
+    
+    dayStats.quizDetails.push({
+        title: quizTitle,
+        timeSpent: timeSpentSeconds,
+        completedAt: new Date().toISOString()
+    });
+    
     localStorage.setItem('medFocusStats', JSON.stringify(stats));
     
     // Atualizar overview se estiver visível
-    this.updateOverviewStats();
+    if (this.updateOverviewStats) {
+        this.updateOverviewStats();
+    }
     
     console.log(`Tempo de simulado salvo: ${Math.floor(timeSpentSeconds / 60)}:${(timeSpentSeconds % 60).toString().padStart(2, '0')} - ${quizTitle}`);
 };

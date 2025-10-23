@@ -8,7 +8,7 @@
     <title>MedFocus Cards</title>
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/deck-hierarchy.css">
-    <link rel="stylesheet" href="./admin/usuarios/ui/styles.css">
+    <link rel="stylesheet" href="./css/theme-fixes.css">
     <link rel="stylesheet" href="./admin/usuarios/ui/styles.css">
     <!-- Brand icons -->
     <link rel="icon" type="image/png" href="./assets/medfocus-icon.png">
@@ -843,9 +843,7 @@
                             <div class="card__body admin-users__header-body">
                                 <div class="admin-users__heading">
                                     <h2 class="admin-section__title">Usuários cadastrados</h2>
-                                    <p class="admin-section__subtitle">Centralize a gestão de usuários, planos e
-                                        permissões
-                                        em um só lugar.</p>
+                                    <p class="admin-section__subtitle">Centralize a gestão de usuários, planos e permissões em um só lugar.</p>
                                 </div>
                                 <button class="btn btn--primary" id="btnNewUser" type="button" onclick="showCreateUserModal()">
                                     <i class="fas fa-user-plus"></i>
@@ -853,7 +851,81 @@
                                 </button>
                             </div>
                         </div>
-                        <div id="admin-usuarios-app"></div>
+                        
+                        <!-- Barra de Busca -->
+                        <div class="card">
+                            <div class="card__body">
+                                <div class="search-section">
+                                    <div class="search-filters">
+                                        <div class="form-group">
+                                            <label class="form-label">Buscar por:</label>
+                                            <div class="search-inputs">
+                                                <input type="text" id="searchName" class="form-control" placeholder="Nome do usuário" onkeyup="filterUsers()">
+                                                <input type="text" id="searchEmail" class="form-control" placeholder="Email" onkeyup="filterUsers()">
+                                                <select id="searchPlan" class="form-control" onchange="filterUsers()">
+                                                    <option value="">Todos os planos</option>
+                                                    <option value="free">Gratuito</option>
+                                                    <option value="basic">Básico</option>
+                                                    <option value="premium">Premium</option>
+                                                </select>
+                                                <select id="searchStatus" class="form-control" onchange="filterUsers()">
+                                                    <option value="">Todos os status</option>
+                                                    <option value="active">Ativo</option>
+                                                    <option value="inactive">Inativo</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="search-actions">
+                                            <button class="btn btn--outline" onclick="clearUserSearch()">
+                                                <i class="fas fa-times"></i> Limpar
+                                            </button>
+                                            <button class="btn btn--secondary" onclick="exportUsers()">
+                                                <i class="fas fa-download"></i> Exportar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tabela de Usuários -->
+                        <div class="card">
+                            <div class="card__body">
+                                <div class="table-container">
+                                    <table id="usersTable" class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>Email</th>
+                                                <th>Função</th>
+                                                <th>Plano</th>
+                                                <th>Status</th>
+                                                <th>Último Login</th>
+                                                <th>Cadastro</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="usersTableBody">
+                                            <!-- Usuários serão inseridos aqui dinamicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="table-footer">
+                                    <div class="table-info">
+                                        <span id="usersCount">0 usuários encontrados</span>
+                                    </div>
+                                    <div class="table-pagination">
+                                        <button class="btn btn--sm btn--outline" onclick="previousUsersPage()" id="prevPageBtn" disabled>
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <span id="currentPage">1</span>
+                                        <button class="btn btn--sm btn--outline" onclick="nextUsersPage()" id="nextPageBtn" disabled>
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="adminSettings" class="admin-content">
@@ -864,7 +936,42 @@
                                 </div>
                                 <div class="card__body">
                                     <div id="pricingSettings" class="settings-form">
-                                        <!-- Pricing settings form -->
+                                        <div class="form-group">
+                                            <label class="form-label">Plano Básico (Mensal)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">R$</span>
+                                                <input type="number" id="basicMonthlyPrice" class="form-control" value="29.90" step="0.01" min="0">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Plano Básico (Anual)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">R$</span>
+                                                <input type="number" id="basicYearlyPrice" class="form-control" value="299.90" step="0.01" min="0">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Plano Premium (Mensal)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">R$</span>
+                                                <input type="number" id="premiumMonthlyPrice" class="form-control" value="59.90" step="0.01" min="0">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Plano Premium (Anual)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">R$</span>
+                                                <input type="number" id="premiumYearlyPrice" class="form-control" value="599.90" step="0.01" min="0">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-actions">
+                                            <button class="btn btn--primary" onclick="savePricingSettings()">Salvar Preços</button>
+                                            <button class="btn btn--outline" onclick="resetPricingSettings()">Restaurar Padrão</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -875,7 +982,60 @@
                                 </div>
                                 <div class="card__body">
                                     <div id="plansSettings" class="settings-form">
-                                        <!-- Plan limits form -->
+                                        <div class="plan-limits-grid">
+                                            <div class="plan-card">
+                                                <h4>Plano Gratuito</h4>
+                                                <div class="form-group">
+                                                    <label class="form-label">Máximo de Decks</label>
+                                                    <input type="number" id="freeMaxDecks" class="form-control" value="3" min="0">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label">Máximo de Cards por Deck</label>
+                                                    <input type="number" id="freeMaxCards" class="form-control" value="50" min="0">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label">Máximo de Simulados</label>
+                                                    <input type="number" id="freeMaxQuizzes" class="form-control" value="2" min="0">
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="plan-card">
+                                                <h4>Plano Básico</h4>
+                                                <div class="form-group">
+                                                    <label class="form-label">Máximo de Decks</label>
+                                                    <input type="number" id="basicMaxDecks" class="form-control" value="20" min="0">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label">Máximo de Cards por Deck</label>
+                                                    <input type="number" id="basicMaxCards" class="form-control" value="200" min="0">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label">Máximo de Simulados</label>
+                                                    <input type="number" id="basicMaxQuizzes" class="form-control" value="15" min="0">
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="plan-card">
+                                                <h4>Plano Premium</h4>
+                                                <div class="form-group">
+                                                    <label class="form-label">Máximo de Decks</label>
+                                                    <input type="number" id="premiumMaxDecks" class="form-control" value="999" min="0">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label">Máximo de Cards por Deck</label>
+                                                    <input type="number" id="premiumMaxCards" class="form-control" value="999" min="0">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label">Máximo de Simulados</label>
+                                                    <input type="number" id="premiumMaxQuizzes" class="form-control" value="999" min="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-actions">
+                                            <button class="btn btn--primary" onclick="savePlanLimits()">Salvar Limites</button>
+                                            <button class="btn btn--outline" onclick="resetPlanLimits()">Restaurar Padrão</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -885,9 +1045,42 @@
                                     <h3>Backup e Logs</h3>
                                 </div>
                                 <div class="card__body">
-                                    <button class="btn btn--primary" onclick="createBackup()">Criar Backup</button>
-                                    <button class="btn btn--secondary" onclick="showSystemLogs()">Ver Logs do
-                                        Sistema</button>
+                                    <div class="backup-section">
+                                        <div class="form-group">
+                                            <label class="form-label">Último Backup</label>
+                                            <div class="backup-info">
+                                                <span id="lastBackupDate">Nenhum backup realizado</span>
+                                                <button class="btn btn--sm btn--outline" onclick="checkBackupStatus()">Verificar</button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Tamanho do Backup</label>
+                                            <div class="backup-info">
+                                                <span id="backupSize">-</span>
+                                                <span class="text-muted">MB</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="backup-actions">
+                                            <button class="btn btn--primary" onclick="createBackup()">
+                                                <i class="fas fa-download"></i> Criar Backup
+                                            </button>
+                                            <button class="btn btn--secondary" onclick="showSystemLogs()">
+                                                <i class="fas fa-file-alt"></i> Ver Logs
+                                            </button>
+                                            <button class="btn btn--outline" onclick="downloadBackup()">
+                                                <i class="fas fa-download"></i> Baixar Backup
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="backup-history" id="backupHistory" style="display: none;">
+                                            <h5>Histórico de Backups</h5>
+                                            <div id="backupList" class="backup-list">
+                                                <!-- Lista de backups será inserida aqui -->
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1081,16 +1274,41 @@
                     </button>
                 </div>
             </div>
-        </section><div class="results-container">
-                <div class="results-header">
-                    <div class="results-icon">
-                        <i class="fas fa-book-open"></i>
+        </section>
+
+        <!-- QUIZ REVIEW PAGE -->
+        <section id="quizReviewPage" class="page-section">
+            <div class="quiz-review-container">
+                <div class="review-header">
+                    <div class="review-title">
+                        <h2>Revisão do Simulado</h2>
+                        <p id="reviewQuizTitle">Título do Simulado</p>
                     </div>
-                    <h1>Revisão do Simulado</h1>
+                    <div class="review-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Tempo Gasto</span>
+                            <span class="stat-value" id="reviewTimeSpent">00:00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Pontuação</span>
+                            <span class="stat-value" id="reviewScore">0%</span>
+                        </div>
+                    </div>
                 </div>
-                <div id="quizReviewContainer" class="quiz-review" style="display:grid; gap:16px;"></div>
-                <div class="results-actions" style="margin-top:16px;">
-                    <button class="btn btn--primary" onclick="showPage('dashboardPage')">Voltar ao Dashboard</button>
+
+                <div class="review-questions" id="reviewQuestions">
+                    <!-- Questões serão inseridas aqui dinamicamente -->
+                </div>
+
+                <div class="review-actions">
+                    <button class="btn btn--outline" onclick="showPage('quizzesPage')">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar aos Simulados
+                    </button>
+                    <button class="btn btn--primary" onclick="showPage('dashboardPage')">
+                        <i class="fas fa-home"></i>
+                        Ir ao Dashboard
+                    </button>
                 </div>
             </div>
         </section>

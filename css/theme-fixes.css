@@ -1,0 +1,131 @@
+/* ===== THEME FIXES - MedFocus Cards ===== */
+/* This file contains fixes for theme switching conflicts */
+
+/* Remove conflicting media queries and consolidate dark mode styles */
+[data-color-scheme="dark"] {
+  /* Dark mode color variables */
+  --card-bg: #2d2d2d;
+  --card-text: #ffffff;
+  --select-bg: #2d2d2d;
+  --select-text: #ffffff;
+  --select-border: #555555;
+  --admin-tab-border: #555555;
+  --admin-tab-text: #cccccc;
+  --admin-tab-hover-bg: #3a3a3a;
+  --admin-tab-active-color: #4fd1c7;
+  --admin-tab-active-bg: #2a2a2a;
+  --admin-content-text: #ffffff;
+  --admin-stats-text: #ffffff;
+  --admin-toolbar-text: #ffffff;
+  --btn-text: #ffffff;
+  --btn-border: #555555;
+  --btn-primary-bg: #4fd1c7;
+  --btn-primary-text: #000000;
+  --btn-primary-hover: #45b8b0;
+  --btn-secondary-bg: #3a3a3a;
+  --btn-secondary-hover-bg: #4a4a4a;
+  --btn-secondary-hover-border: #666666;
+}
+
+/* Consolidated dark mode styles */
+[data-color-scheme="dark"] .card,
+[data-color-scheme="dark"] .stat-card,
+[data-color-scheme="dark"] .recent-deck-item,
+[data-color-scheme="dark"] .chart-container {
+  background-color: var(--card-bg);
+  color: var(--card-text);
+}
+
+[data-color-scheme="dark"] select {
+  background-color: var(--select-bg);
+  color: var(--select-text);
+  border-color: var(--select-border);
+}
+
+[data-color-scheme="dark"] select option {
+  background-color: var(--select-bg);
+  color: var(--select-text);
+}
+
+/* Admin panel dark mode */
+[data-color-scheme="dark"] .admin-tabs {
+  border-bottom-color: var(--admin-tab-border);
+}
+
+[data-color-scheme="dark"] .tab-btn {
+  color: var(--admin-tab-text);
+  background: none;
+}
+
+[data-color-scheme="dark"] .tab-btn:hover {
+  color: var(--admin-content-text);
+  background-color: var(--admin-tab-hover-bg);
+}
+
+[data-color-scheme="dark"] .tab-btn.active {
+  color: var(--admin-tab-active-color);
+  border-bottom-color: var(--admin-tab-active-color);
+  background-color: var(--admin-tab-active-bg);
+}
+
+[data-color-scheme="dark"] .admin-content,
+[data-color-scheme="dark"] .admin-header h2,
+[data-color-scheme="dark"] .settings-grid {
+  color: var(--admin-content-text);
+}
+
+[data-color-scheme="dark"] .admin-stats,
+[data-color-scheme="dark"] .admin-toolbar {
+  color: var(--admin-stats-text);
+}
+
+[data-color-scheme="dark"] .settings-grid .btn {
+  color: var(--btn-text);
+  border-color: var(--btn-border);
+}
+
+[data-color-scheme="dark"] .settings-grid .btn--primary {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-bg);
+}
+
+[data-color-scheme="dark"] .settings-grid .btn--primary:hover {
+  background-color: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
+}
+
+[data-color-scheme="dark"] .settings-grid .btn--secondary {
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-text);
+  border-color: var(--btn-border);
+}
+
+[data-color-scheme="dark"] .settings-grid .btn--secondary:hover {
+  background-color: var(--btn-secondary-hover-bg);
+  border-color: var(--btn-secondary-hover-border);
+}
+
+/* Light mode overrides */
+[data-color-scheme="light"] {
+  --card-bg: #ffffff;
+  --card-text: #333333;
+  --select-bg: #ffffff;
+  --select-text: #333333;
+  --select-border: #e0e0e0;
+}
+
+/* Ensure smooth transitions */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Fix for theme toggle button */
+.theme-toggle {
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+}
+
