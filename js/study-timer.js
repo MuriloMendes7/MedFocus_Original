@@ -23,12 +23,14 @@ const StudyTimer = {
 
     // Inicializar
     init() {
+        console.log('Inicializando StudyTimer...');
         this.loadState();
         this.setupEventListeners();
         this.startAutoSave();
         this.trackActivity();
         this.updateDisplay();
         this.updateTimerButtons();
+        console.log('StudyTimer inicializado com sucesso');
     },
 
     // Carregar estado salvo
@@ -72,6 +74,35 @@ const StudyTimer = {
         window.addEventListener('beforeunload', () => {
             this.stopTimer();
         });
+
+        // Configurar botões do cronômetro
+        const startBtn = document.getElementById('timerStartBtn');
+        const pauseBtn = document.getElementById('timerPauseBtn');
+        const stopBtn = document.getElementById('timerStopBtn');
+
+        if (startBtn) {
+            startBtn.addEventListener('click', () => {
+                if (!this.state.isRunning) {
+                    this.startTimer('current');
+                }
+            });
+        }
+
+        if (pauseBtn) {
+            pauseBtn.addEventListener('click', () => {
+                if (this.state.isRunning) {
+                    this.pauseTimer();
+                } else {
+                    this.resumeTimer();
+                }
+            });
+        }
+
+        if (stopBtn) {
+            stopBtn.addEventListener('click', () => {
+                this.stopTimer();
+            });
+        }
     },
 
     // Rastrear atividade do usuário
@@ -126,10 +157,57 @@ const StudyTimer = {
             pauses: []
         };
 
+        // Iniciar o cronômetro visual
+        this.startVisualTimer();
+
         this.updateDisplay();
         this.updateTimerButtons();
         this.saveState();
         this.notifyTimerStart();
+    }
+
+    // Iniciar cronômetro visual (versão simplificada)
+    startVisualTimer() {
+        console.log('startVisualTimer chamado');
+        
+        // Limpar timer anterior
+        if (this.visualTimer) {
+            clearInterval(this.visualTimer);
+            this.visualTimer = null;
+        }
+
+        // Verificar se o elemento existe
+        const timerElement = document.getElementById('studyTimer');
+        if (!timerElement) {
+            console.log('Elemento studyTimer não encontrado');
+            return;
+        }
+
+        console.log('Iniciando cronômetro visual...');
+        
+        // Função para atualizar o timer
+        const updateTimer = () => {
+            if (!this.state.isRunning || !this.state.startTime) {
+                return;
+            }
+
+            const elapsed = Date.now() - this.state.startTime;
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            
+            const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            timerElement.textContent = timeString;
+            
+            console.log('Timer atualizado:', timeString);
+        };
+
+        // Atualizar imediatamente
+        updateTimer();
+        
+        // Configurar intervalo
+        this.visualTimer = setInterval(updateTimer, 1000);
+        
+        console.log('Cronômetro visual iniciado com sucesso');
     },
 
     // Pausar cronômetro
@@ -200,6 +278,12 @@ const StudyTimer = {
         this.state.totalTime = 0;
         this.state.deckId = null;
         this.state.cardId = null;
+
+        // Limpar cronômetro visual
+        if (this.visualTimer) {
+            clearInterval(this.visualTimer);
+            this.visualTimer = null;
+        }
 
         this.updateDisplay();
         this.updateTimerButtons();
@@ -418,3 +502,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Exportar para uso global
 window.StudyTimer = StudyTimer;
+
+// Função de debug para testar o cronômetro
+window.debugStudyTimer = () => {
+    console.log('=== DEBUG STUDY TIMER ===');
+    console.log('Estado:', StudyTimer.state);
+    console.log('Config:', StudyTimer.config);
+    console.log('Elemento studyTimer:', document.getElementById('studyTimer'));
+    console.log('Página de estudo:', document.getElementById('studyModePage'));
+    
+    // Testar inicialização
+    StudyTimer.init();
+    
+    // Testar início do timer
+    setTimeout(() => {
+        console.log('Testando startTimer...');
+        StudyTimer.startTimer('test_deck');
+    }, 1000);
+};
+
+// Função simples para iniciar cronômetro manualmente
+window.startStudyTimer = () => {
+    console.log('Iniciando cronômetro manualmente...');
+    StudyTimer.startTimer('manual_start');
+};
+
+// Função para parar cronômetro manualmente
+window.stopStudyTimer = () => {
+    console.log('Parando cronômetro manualmente...');
+    StudyTimer.stopTimer();
+};

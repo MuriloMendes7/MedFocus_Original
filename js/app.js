@@ -16,6 +16,33 @@ class MedFocusApp {
         this.charts = {};
         this.currentFlashcardsCategory = null;
         this.currentQuizzesCategory = null;
+        this.backendUrl = window.MEDFOCUS_BACKEND_URL || 'http://localhost:4000';
+        this.planFlashcardBundles = {
+            free: {
+                bundle: 'starter_core',
+                description: 'Deck introdutório com anatomia básica',
+                files: [
+                    'flashcards/anatomia-basica.json'
+                ]
+            },
+            basic: {
+                bundle: 'basic_clinico',
+                description: 'Inclui anatomia básica + módulos clínicos',
+                files: [
+                    'flashcards/anatomia-basica.json',
+                    'flashcards/clinico-essential.json'
+                ]
+            },
+            premium: {
+                bundle: 'premium_full',
+                description: 'Biblioteca completa com cardio, nefro e revisões rápidas',
+                files: [
+                    'flashcards/anatomia-basica.json',
+                    'flashcards/clinico-essential.json',
+                    'flashcards/premium-intensivo.json'
+                ]
+            }
+        };
 
         // Bind this context to global functions
         window.app = this;
@@ -43,6 +70,13 @@ class MedFocusApp {
             setTimeout(() => {
                 console.log('Iniciando restoreState...');
                 this.restoreState();
+                
+                // Sincronizar todos os usuários com o backend após inicialização
+                setTimeout(() => {
+                    this.syncAllUsersToBackend().catch(error => {
+                        console.warn('Erro ao sincronizar usuários na inicialização:', error);
+                    });
+                }, 1000);
             }, 200);
         }, 100);
     }
@@ -428,9 +462,58 @@ class MedFocusApp {
 
         this.currentUser = user;
         localStorage.setItem('medFocusCurrentUser', JSON.stringify(user));
+        
+        // Sincronizar com backend (login event e atualizar dados do paciente)
+        this.syncLoginWithBackend(user);
+        this.syncPatientToBackend(user).catch(error => {
+            console.warn('Não foi possível sincronizar paciente no login:', error);
+        });
+        
         this.showPage('dashboardPage');
         this.updateUIForLoggedUser();
         this.showNotification('Login realizado com sucesso!', 'success');
+    }
+
+    getFlashcardBundleForPlan(plan) {
+        const normalizedPlan = (plan || 'free').toLowerCase();
+        return this.planFlashcardBundles[normalizedPlan] || this.planFlashcardBundles.free;
+    }
+
+    async syncLoginWithBackend(user) {
+        if (!this.backendUrl) {
+            console.warn('Backend URL não configurado, ignorando sync.');
+            return;
+        }
+
+        const bundle = this.getFlashcardBundleForPlan(user.plan);
+        const payload = {
+            userId: user.id,
+            name: user.name,
+            email: user.email,
+            plan: user.plan || 'free',
+            deckBundle: bundle.bundle,
+            metadata: {
+                deckFiles: bundle.files,
+                bundleDescription: bundle.description,
+                syncedAt: new Date().toISOString()
+            }
+        };
+
+        try {
+            const response = await fetch(`${this.backendUrl}/api/login-events`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Falha ao sincronizar login: ${response.status}`);
+            }
+        } catch (error) {
+            console.warn('Não foi possível enviar o login ao backend:', error);
+        }
     }
 
     handleRegister() {
@@ -483,6 +566,12 @@ class MedFocusApp {
         this.currentUser = newUser;
         localStorage.setItem('medFocusCurrentUser', JSON.stringify(newUser));
 
+        // Enviar dados para o backend
+        this.syncPatientToBackend(newUser).catch(error => {
+            console.warn('Não foi possível sincronizar com o backend:', error);
+            // Continua mesmo se falhar o backend
+        });
+
         // Notify userAdmin to reload the user list if it exists
         if (window.userAdmin && typeof window.userAdmin.loadUsers === 'function') {
             window.userAdmin.loadUsers();
@@ -491,6 +580,122 @@ class MedFocusApp {
         this.showPage('dashboardPage');
         this.updateUIForLoggedUser();
         this.showNotification('Cadastro realizado com sucesso!', 'success');
+    }
+
+    async syncPatientToBackend(user) {
+        if (!this.backendUrl) {
+            console.warn('Backend URL não configurado, ignorando sync.');
+            return { success: false, error: 'Backend URL não configurado' };
+        }
+
+        const payload = {
+            userId: user.id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone || null,
+            plan: user.plan || 'free',
+            role: user.role || 'student',
+            isActive: user.isActive !== undefined ? user.isActive : true,
+            lastLogin: user.lastLogin || null
+        };
+
+        try {
+            console.log('🔄 Sincronizando paciente com backend:', user.email);
+            
+            // Primeiro, tenta buscar se já existe
+            const getResponse = await fetch(`${this.backendUrl}/api/patients/${encodeURIComponent(user.email)}`);
+            
+            if (getResponse.ok) {
+                // Paciente já existe, atualiza
+                const { data: existingPatient } = await getResponse.json();
+                console.log('📝 Paciente já existe, atualizando...', existingPatient.id);
+                
+                const updateResponse = await fetch(`${this.backendUrl}/api/patients/${existingPatient.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (updateResponse.ok) {
+                    console.log('✅ Paciente atualizado com sucesso no backend');
+                    return { success: true, action: 'updated' };
+                } else {
+                    const errorData = await updateResponse.json().catch(() => ({}));
+                    throw new Error(`Erro ao atualizar: ${updateResponse.status} - ${errorData.error || 'Erro desconhecido'}`);
+                }
+            } else if (getResponse.status === 404) {
+                // Paciente não existe, cria novo
+                console.log('➕ Criando novo paciente no backend...');
+                
+                const createResponse = await fetch(`${this.backendUrl}/api/patients`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (createResponse.ok) {
+                    const result = await createResponse.json();
+                    console.log('✅ Paciente criado com sucesso no backend:', result.data);
+                    return { success: true, action: 'created', data: result.data };
+                } else {
+                    const errorData = await createResponse.json().catch(() => ({}));
+                    throw new Error(`Erro ao criar: ${createResponse.status} - ${errorData.error || 'Erro desconhecido'}`);
+                }
+            } else {
+                throw new Error(`Erro ao verificar paciente: ${getResponse.status}`);
+            }
+        } catch (error) {
+            console.error('❌ Erro ao sincronizar paciente com backend:', error);
+            console.error('   Usuário:', user.email);
+            console.error('   Backend URL:', this.backendUrl);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Sincronizar todos os usuários existentes do localStorage
+    async syncAllUsersToBackend() {
+        console.log('🔄 Iniciando sincronização de todos os usuários...');
+        
+        const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+        
+        if (users.length === 0) {
+            console.log('ℹ️ Nenhum usuário no localStorage para sincronizar');
+            return;
+        }
+
+        console.log(`📊 Encontrados ${users.length} usuário(s) para sincronizar`);
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const user of users) {
+            try {
+                const result = await this.syncPatientToBackend(user);
+                if (result && result.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+                // Pequeno delay para não sobrecarregar o servidor
+                await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (error) {
+                console.error(`Erro ao sincronizar usuário ${user.email}:`, error);
+                errorCount++;
+            }
+        }
+
+        console.log(`✅ Sincronização concluída: ${successCount} sucesso, ${errorCount} erros`);
+        
+        if (successCount > 0) {
+            this.showNotification(`${successCount} usuário(s) sincronizado(s) com sucesso!`, 'success');
+        }
+        if (errorCount > 0) {
+            this.showNotification(`${errorCount} usuário(s) falharam na sincronização. Verifique o console.`, 'error');
+        }
     }
 
     logout() {
@@ -1756,7 +1961,20 @@ class MedFocusApp {
             clearInterval(this.quizTimer);
         }
 
+        // Garantir que o tempo restante está definido
+        if (!this.quizSession.timeRemaining) {
+            this.quizSession.timeRemaining = this.quizSession.quiz.timeLimit * 60; // Converter minutos para segundos
+        }
+
+        console.log('Iniciando cronômetro do quiz:', this.quizSession.timeRemaining, 'segundos');
+
         this.quizTimer = setInterval(() => {
+            if (this.quizSession.timeRemaining <= 0) {
+                clearInterval(this.quizTimer);
+                this.finishQuiz();
+                return;
+            }
+
             this.quizSession.timeRemaining--;
 
             const minutes = Math.floor(this.quizSession.timeRemaining / 60);
@@ -1764,12 +1982,16 @@ class MedFocusApp {
 
             const timerElement = document.getElementById('quizTimer');
             if (timerElement) {
-                timerElement.textContent =
-                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            }
-
-            if (this.quizSession.timeRemaining <= 0) {
-                this.finishQuiz();
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Mudar cor quando restam poucos minutos
+                if (this.quizSession.timeRemaining <= 300) { // 5 minutos
+                    timerElement.style.color = '#dc3545';
+                } else if (this.quizSession.timeRemaining <= 600) { // 10 minutos
+                    timerElement.style.color = '#ffc107';
+                } else {
+                    timerElement.style.color = '';
+                }
             }
         }, 1000);
     }

@@ -1,0 +1,18 @@
+{
+  "name": "medfocus-backend",
+  "version": "1.0.0",
+  "description": "API simples para inserir dados em um banco SQL para o projeto MedFocus.",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.7"
+  }
+}
+

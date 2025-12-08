@@ -16,6 +16,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Configuração do Backend
+        // Para usar de outros dispositivos na rede, configure o IP do servidor:
+        // window.MEDFOCUS_BACKEND_URL = 'http://192.168.1.100:4000';
+        // Ou deixe undefined/null para usar localhost (apenas no mesmo PC)
+        // O código detecta automaticamente se está em localhost ou produção
+        (function() {
+            const hostname = window.location.hostname;
+            // Se não estiver em localhost, assume que o backend está no mesmo servidor
+            if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !window.MEDFOCUS_BACKEND_URL) {
+                // Tenta usar o mesmo hostname com porta 4000
+                window.MEDFOCUS_BACKEND_URL = `${window.location.protocol}//${hostname}:4000`;
+            }
+        })();
+        
         // Early globals to avoid inline onclick errors before scripts load
         window.navigateToHome = window.navigateToHome || function () {
             try { if (typeof window.showPage === 'function') { window.showPage('homePage'); } else { location.hash = ''; } } catch (e) { }
@@ -845,10 +859,16 @@
                                     <h2 class="admin-section__title">Usuários cadastrados</h2>
                                     <p class="admin-section__subtitle">Centralize a gestão de usuários, planos e permissões em um só lugar.</p>
                                 </div>
-                                <button class="btn btn--primary" id="btnNewUser" type="button" onclick="showCreateUserModal()">
-                                    <i class="fas fa-user-plus"></i>
-                                    <span>Novo usuário</span>
-                                </button>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn btn--secondary" id="btnSyncUsers" type="button" onclick="syncUsersToBackend()" title="Sincronizar usuários com o banco de dados">
+                                        <i class="fas fa-sync-alt"></i>
+                                        <span>Sincronizar</span>
+                                    </button>
+                                    <button class="btn btn--primary" id="btnNewUser" type="button" onclick="showCreateUserModal()">
+                                        <i class="fas fa-user-plus"></i>
+                                        <span>Novo usuário</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
@@ -1719,6 +1739,37 @@
                 if (modal) {
                     modal.classList.remove('hidden');
                 }
+            }
+        }
+
+        // Função global para sincronizar usuários com o backend
+        async function syncUsersToBackend() {
+            const btn = document.getElementById('btnSyncUsers');
+            if (!btn) return;
+
+            if (!window.app) {
+                alert('Aplicação não inicializada. Recarregue a página.');
+                return;
+            }
+
+            // Desabilita o botão durante a sincronização
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Sincronizando...</span>';
+
+            try {
+                await window.app.syncAllUsersToBackend();
+            } catch (error) {
+                console.error('Erro ao sincronizar:', error);
+                if (window.app && typeof window.app.showNotification === 'function') {
+                    window.app.showNotification('Erro ao sincronizar usuários. Verifique o console.', 'error');
+                } else {
+                    alert('Erro ao sincronizar usuários. Verifique o console do navegador.');
+                }
+            } finally {
+                // Reabilita o botão
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
             }
         }
         
