@@ -114,6 +114,19 @@ SELECT * FROM login_events; # Ver eventos de login
 - `metadata` - Dados adicionais (JSON)
 - `created_at` - Data do evento
 
+### Tabela `flashcard_decks` (Decks de Flashcards):
+- `id` - ID único (auto-incremento)
+- `deck_id` - ID único do deck no sistema
+- `user_id` - ID do usuário proprietário
+- `name` - Nome do deck
+- `description` - Descrição do deck
+- `category` - Categoria (medicina, cirurgia, etc.)
+- `theme` - Tema do deck
+- `plan` - Plano associado
+- `cards` - Array JSON com os cards do deck
+- `created_at` - Data de criação
+- `updated_at` - Data de atualização
+
 ---
 
 ## 🚀 Início Rápido
@@ -159,5 +172,14 @@ SELECT plan, COUNT(*) as total FROM patients GROUP BY plan;
 
 -- Ver últimos logins
 SELECT * FROM login_events ORDER BY created_at DESC LIMIT 10;
+
+-- Ver todos os decks de flashcards
+SELECT * FROM flashcard_decks;
+
+-- Ver decks de um usuário específico
+SELECT * FROM flashcard_decks WHERE user_id = 'user_123456';
+
+-- Ver decks por plano
+SELECT * FROM flashcard_decks WHERE plan = 'premium';
 ```
 

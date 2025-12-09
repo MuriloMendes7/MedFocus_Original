@@ -486,13 +486,23 @@ class UserAdmin {
             id: this.generateId(),
             ...userData,
             role: 'student',
+            created: new Date().toISOString(),
             createdAt: new Date().toISOString(),
-            lastLoginAt: null
+            lastLogin: null,
+            lastLoginAt: null,
+            isActive: userData.isActive !== undefined ? userData.isActive : true
         };
 
         this.users.push(newUser);
         if (window.Storage) {
             window.Storage.setUsers(this.users);
+        }
+
+        // Sincronizar com o backend se o app estiver disponível
+        if (window.app && typeof window.app.syncUserDataToBackend === 'function') {
+            await window.app.syncUserDataToBackend(newUser).catch(error => {
+                console.warn('Erro ao sincronizar novo usuário com o backend:', error);
+            });
         }
     }
 
@@ -500,9 +510,25 @@ class UserAdmin {
         const userIndex = this.users.findIndex(u => u.id === userId);
         if (userIndex === -1) throw new Error('User not found');
 
+        const oldPlan = this.users[userIndex].plan;
         this.users[userIndex] = { ...this.users[userIndex], ...updates };
         if (window.Storage) {
             window.Storage.setUsers(this.users);
+        }
+
+        // Sincronizar com o backend se o app estiver disponível
+        if (window.app && typeof window.app.syncUserDataToBackend === 'function') {
+            // Se o plano foi alterado, sincronizar flashcards também
+            if (updates.plan && updates.plan !== oldPlan) {
+                await window.app.syncUserDataToBackend(this.users[userIndex]).catch(error => {
+                    console.warn('Erro ao sincronizar dados do usuário atualizado:', error);
+                });
+            } else {
+                // Só sincronizar perfil se o plano não mudou
+                await window.app.syncPatientToBackend(this.users[userIndex]).catch(error => {
+                    console.warn('Erro ao sincronizar perfil do usuário:', error);
+                });
+            }
         }
     }
 

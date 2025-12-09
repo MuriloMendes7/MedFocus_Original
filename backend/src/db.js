@@ -101,6 +101,30 @@ db.serialize(() => {
       }
     },
   );
+
+  // Criar tabela para flashcard decks
+  db.run(
+    `CREATE TABLE IF NOT EXISTS flashcard_decks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        deck_id TEXT UNIQUE NOT NULL,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        category TEXT,
+        theme TEXT,
+        plan TEXT,
+        cards TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+     )`,
+    (err) => {
+      if (err) {
+        console.error('Erro ao criar tabela flashcard_decks:', err.message);
+      } else {
+        console.log('✅ Tabela flashcard_decks criada/verificada');
+      }
+    },
+  );
 });
 
 export const insertPatient = ({
@@ -332,6 +356,201 @@ export const getLoginEvents = () =>
           rows.map((row) => ({
             ...row,
             metadata: row.metadata ? JSON.parse(row.metadata) : null,
+          })),
+        );
+      },
+    );
+  });
+
+// Funções para gerenciar flashcards
+export const insertFlashcardDeck = ({
+  deckId,
+  userId,
+  name,
+  description,
+  category,
+  theme,
+  plan,
+  cards,
+}) =>
+  new Promise((resolve, reject) => {
+    const stmt = `INSERT INTO flashcard_decks (deck_id, user_id, name, description, category, theme, plan, cards, updated_at)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`;
+    
+    const cardsJson = JSON.stringify(cards);
+    
+    db.run(
+      stmt,
+      [
+        deckId,
+        userId,
+        name,
+        description ?? null,
+        category ?? null,
+        theme ?? null,
+        plan ?? null,
+        cardsJson,
+      ],
+      function handleResult(err) {
+        if (err) {
+          return reject(err);
+        }
+
+        resolve({
+          id: this.lastID,
+          deckId,
+          userId,
+          name,
+          description,
+          category,
+          theme,
+          plan,
+          cards: Array.isArray(cards) ? cards : JSON.parse(cardsJson),
+        });
+      },
+    );
+  });
+
+export const getFlashcardDecksByUserId = (userId) =>
+  new Promise((resolve, reject) => {
+    db.all(
+      'SELECT * FROM flashcard_decks WHERE user_id = ? ORDER BY created_at DESC',
+      [userId],
+      (err, rows) => {
+        if (err) {
+          return reject(err);
+        }
+
+        if (!rows || rows.length === 0) {
+          return resolve([]);
+        }
+
+        resolve(
+          rows.map((row) => ({
+            ...row,
+            cards: row.cards ? JSON.parse(row.cards) : [],
+          })),
+        );
+      },
+    );
+  });
+
+export const getFlashcardDeckByDeckId = (deckId) =>
+  new Promise((resolve, reject) => {
+    db.get(
+      'SELECT * FROM flashcard_decks WHERE deck_id = ?',
+      [deckId],
+      (err, row) => {
+        if (err) {
+          return reject(err);
+        }
+
+        if (!row) {
+          return resolve(null);
+        }
+
+        resolve({
+          ...row,
+          cards: row.cards ? JSON.parse(row.cards) : [],
+        });
+      },
+    );
+  });
+
+export const updateFlashcardDeck = ({
+  deckId,
+  userId,
+  name,
+  description,
+  category,
+  theme,
+  plan,
+  cards,
+}) =>
+  new Promise((resolve, reject) => {
+    const updates = [];
+    const values = [];
+
+    if (name !== undefined) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+    if (description !== undefined) {
+      updates.push('description = ?');
+      values.push(description);
+    }
+    if (category !== undefined) {
+      updates.push('category = ?');
+      values.push(category);
+    }
+    if (theme !== undefined) {
+      updates.push('theme = ?');
+      values.push(theme);
+    }
+    if (plan !== undefined) {
+      updates.push('plan = ?');
+      values.push(plan);
+    }
+    if (cards !== undefined) {
+      updates.push('cards = ?');
+      values.push(JSON.stringify(cards));
+    }
+
+    if (updates.length === 0) {
+      return resolve(null);
+    }
+
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(deckId);
+
+    const stmt = `UPDATE flashcard_decks SET ${updates.join(', ')} WHERE deck_id = ?`;
+
+    db.run(stmt, values, function handleResult(err) {
+      if (err) {
+        return reject(err);
+      }
+
+      if (this.changes === 0) {
+        return resolve(null);
+      }
+
+      resolve({ deckId, changes: this.changes });
+    });
+  });
+
+export const deleteFlashcardDeck = (deckId) =>
+  new Promise((resolve, reject) => {
+    db.run(
+      'DELETE FROM flashcard_decks WHERE deck_id = ?',
+      [deckId],
+      function handleResult(err) {
+        if (err) {
+          return reject(err);
+        }
+
+        resolve({ deckId, changes: this.changes });
+      },
+    );
+  });
+
+export const getAllFlashcardDecks = () =>
+  new Promise((resolve, reject) => {
+    db.all(
+      'SELECT * FROM flashcard_decks ORDER BY created_at DESC',
+      [],
+      (err, rows) => {
+        if (err) {
+          return reject(err);
+        }
+
+        if (!rows || rows.length === 0) {
+          return resolve([]);
+        }
+
+        resolve(
+          rows.map((row) => ({
+            ...row,
+            cards: row.cards ? JSON.parse(row.cards) : [],
           })),
         );
       },

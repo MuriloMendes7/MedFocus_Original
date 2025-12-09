@@ -76,6 +76,13 @@ class MedFocusApp {
                     this.syncAllUsersToBackend().catch(error => {
                         console.warn('Erro ao sincronizar usuários na inicialização:', error);
                     });
+                    
+                    // Se houver usuário logado, sincronizar seus flashcards também
+                    if (this.currentUser && this.currentUser.id) {
+                        this.syncFlashcardsToBackend(this.currentUser.id).catch(error => {
+                            console.warn('Erro ao sincronizar flashcards na inicialização:', error);
+                        });
+                    }
                 }, 1000);
             }, 200);
         }, 100);
@@ -463,10 +470,10 @@ class MedFocusApp {
         this.currentUser = user;
         localStorage.setItem('medFocusCurrentUser', JSON.stringify(user));
         
-        // Sincronizar com backend (login event e atualizar dados do paciente)
+        // Sincronizar com backend (login event, dados do paciente e flashcards)
         this.syncLoginWithBackend(user);
-        this.syncPatientToBackend(user).catch(error => {
-            console.warn('Não foi possível sincronizar paciente no login:', error);
+        this.syncUserDataToBackend(user).catch(error => {
+            console.warn('Não foi possível sincronizar dados no login:', error);
         });
         
         this.showPage('dashboardPage');
@@ -566,8 +573,8 @@ class MedFocusApp {
         this.currentUser = newUser;
         localStorage.setItem('medFocusCurrentUser', JSON.stringify(newUser));
 
-        // Enviar dados para o backend
-        this.syncPatientToBackend(newUser).catch(error => {
+        // Enviar dados para o backend (perfil + flashcards)
+        this.syncUserDataToBackend(newUser).catch(error => {
             console.warn('Não foi possível sincronizar com o backend:', error);
             // Continua mesmo se falhar o backend
         });
@@ -695,6 +702,105 @@ class MedFocusApp {
         }
         if (errorCount > 0) {
             this.showNotification(`${errorCount} usuário(s) falharam na sincronização. Verifique o console.`, 'error');
+        }
+    }
+
+    // Sincronizar flashcards do usuário com o backend
+    async syncFlashcardsToBackend(userId) {
+        if (!this.backendUrl) {
+            console.warn('Backend URL não configurado, ignorando sync de flashcards.');
+            return { success: false, error: 'Backend URL não configurado' };
+        }
+
+        if (!userId) {
+            console.warn('UserId não fornecido, ignorando sync de flashcards.');
+            return { success: false, error: 'UserId não fornecido' };
+        }
+
+        try {
+            const decks = JSON.parse(localStorage.getItem('medFocusDecks') || '[]');
+            
+            // Filtra apenas os decks do usuário atual
+            const userDecks = decks.filter(deck => deck.userId === userId);
+            
+            if (userDecks.length === 0) {
+                console.log('ℹ️ Nenhum deck para sincronizar para este usuário');
+                return { success: true, synced: 0 };
+            }
+
+            console.log(`🔄 Sincronizando ${userDecks.length} deck(s) de flashcards com o backend...`);
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const deck of userDecks) {
+                try {
+                    const payload = {
+                        deckId: deck.id,
+                        userId: deck.userId || userId,
+                        name: deck.name || 'Deck sem nome',
+                        description: deck.description || null,
+                        category: deck.category || null,
+                        theme: deck.theme || null,
+                        plan: this.currentUser?.plan || null,
+                        cards: Array.isArray(deck.cards) ? deck.cards : []
+                    };
+
+                    const response = await fetch(`${this.backendUrl}/api/flashcards`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        console.log(`✅ Deck "${deck.name}" sincronizado com sucesso`);
+                        successCount++;
+                    } else {
+                        const errorData = await response.json().catch(() => ({}));
+                        console.error(`❌ Erro ao sincronizar deck "${deck.name}":`, errorData);
+                        errorCount++;
+                    }
+
+                    // Pequeno delay para não sobrecarregar o servidor
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    console.error(`❌ Erro ao sincronizar deck "${deck.name}":`, error);
+                    errorCount++;
+                }
+            }
+
+            console.log(`✅ Sincronização de flashcards concluída: ${successCount} sucesso, ${errorCount} erros`);
+
+            return {
+                success: true,
+                synced: successCount,
+                errors: errorCount
+            };
+        } catch (error) {
+            console.error('❌ Erro ao sincronizar flashcards:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Sincronizar todos os dados do usuário (perfil + flashcards)
+    async syncUserDataToBackend(user) {
+        if (!user) {
+            console.warn('Usuário não fornecido para sincronização');
+            return;
+        }
+
+        try {
+            // Sincroniza perfil do usuário
+            await this.syncPatientToBackend(user);
+            
+            // Sincroniza flashcards do usuário
+            await this.syncFlashcardsToBackend(user.id);
+            
+            console.log('✅ Dados do usuário sincronizados com sucesso');
+        } catch (error) {
+            console.error('❌ Erro ao sincronizar dados do usuário:', error);
         }
     }
 
@@ -4545,6 +4651,13 @@ MedFocusApp.prototype.createDeckWithHierarchy = function() {
 
     decks.push(newDeck);
     localStorage.setItem('medFocusDecks', JSON.stringify(decks));
+
+    // Sincronizar deck com o backend
+    if (this.currentUser && this.currentUser.id) {
+        this.syncFlashcardsToBackend(this.currentUser.id).catch(error => {
+            console.warn('Não foi possível sincronizar deck com o backend:', error);
+        });
+    }
 
     this.closeCreateDeckModal();
     this.loadFlashcards();
