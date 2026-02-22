@@ -589,7 +589,7 @@ function generatePatientsViewHTML(patients) {
             if (!res.ok) {
               throw new Error(result.error || 'Falha ao importar');
             }
-            alert(`Importação concluída. Importados: ${result.imported}, Atualizados: ${result.updated}`);
+            alert('Importação concluída. Importados: ' + result.imported + ', Atualizados: ' + result.updated);
             window.location.reload();
           } catch (err) {
             console.error('Erro ao importar pacientes:', err);
@@ -1092,7 +1092,7 @@ function generateFlashcardsViewHTML(decks) {
             if (!res.ok) {
               throw new Error(result.error || 'Falha ao importar');
             }
-            alert(`Importação concluída. Importados: ${result.imported}, Atualizados: ${result.updated}`);
+            alert('Importação concluída. Importados: ' + result.imported + ', Atualizados: ' + result.updated);
             window.location.reload();
           } catch (err) {
             console.error('Erro ao importar decks:', err);
