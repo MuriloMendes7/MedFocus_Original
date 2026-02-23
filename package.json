@@ -3,6 +3,6 @@
     "dotenv": "^17.3.1",
     "pg": "^8.18.0",
     "sqlite3": "^5.1.7",
-    "start": "node backend/src/server.js"
+    "start": "node src/server.js"
   }
 }
