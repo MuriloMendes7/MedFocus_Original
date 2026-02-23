@@ -1839,11 +1839,9 @@ app.post('/import/flashcards', async (req, res) => {
   res.json({ imported, updated, errors });
 });
 
-const HOST = process.env.HOST ?? '0.0.0.0'; // 0.0.0.0 permite acesso de qualquer IP na rede
+const HOST = process.env.HOST || 4000; // 0.0.0.0 permite acesso de qualquer IP na rede
 
-app.listen(PORT, HOST, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
-  console.log(`Acessível na rede em http://[SEU_IP_LOCAL]:${PORT}`);
-  console.log(`Para descobrir seu IP: ipconfig (Windows) ou ifconfig (Linux/Mac)`);
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
 

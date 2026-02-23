@@ -164,7 +164,7 @@ const StudyTimer = {
         this.updateTimerButtons();
         this.saveState();
         this.notifyTimerStart();
-    }
+    },
 
     // Iniciar cronômetro visual (versão simplificada)
     startVisualTimer() {
