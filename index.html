@@ -24,10 +24,7 @@
         (function() {
             const hostname = window.location.hostname;
             // Se não estiver em localhost, assume que o backend está no mesmo servidor
-            if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !window.MEDFOCUS_BACKEND_URL) {
-                // Tenta usar o mesmo hostname com porta 4000
-                window.MEDFOCUS_BACKEND_URL = `${window.location.protocol}//${hostname}:4000`;
-            }
+            window.MEDFOCUS_BACKEND_URL = 'https://medfocus.onrender.com';
         })();
         
         // Early globals to avoid inline onclick errors before scripts load
