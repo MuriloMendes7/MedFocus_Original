@@ -1,7 +1,7 @@
 // Script de teste para verificar todas as rotas da API
 import fetch from 'node-fetch';
 
-const BASE_URL = 'http://localhost:4000';
+const BASE_URL = 'https://medfocus.onrender.com';
 
 const colors = {
   reset: '\x1b[0m',

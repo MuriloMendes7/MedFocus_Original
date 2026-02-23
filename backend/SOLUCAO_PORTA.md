@@ -45,7 +45,7 @@ npm run dev
 O servidor deve iniciar mostrando:
 ```
 ✅ MedFocus Backend iniciado com sucesso!
-📍 Local:     http://localhost:4000 (ou 4001)
+📍 Local:     https://medfocus.onrender.com (ou 4001)
 🌐 Rede:      http://0.0.0.0:4000 (ou 4001)
 ```
 

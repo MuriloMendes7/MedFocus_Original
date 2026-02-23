@@ -16,7 +16,7 @@ class MedFocusApp {
         this.charts = {};
         this.currentFlashcardsCategory = null;
         this.currentQuizzesCategory = null;
-        this.backendUrl = window.MEDFOCUS_BACKEND_URL || 'http://localhost:4000';
+        this.backendUrl = window.MEDFOCUS_BACKEND_URL || 'https://medfocus.onrender.com';
         this.planFlashcardBundles = {
             free: {
                 bundle: 'starter_core',
