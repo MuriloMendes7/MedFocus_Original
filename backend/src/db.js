@@ -1,23 +1,19 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
-import path from 'path';
 
-// Puxa o .env exatamente da pasta onde o terminal está aberto
-dotenv.config({ path: path.join(process.cwd(), '.env') });
-
-if (!process.env.DATABASE_URL) {
-  console.error("❌ ERRO: O arquivo .env não foi encontrado ou a variável DATABASE_URL está escrita errada!");
-}
+// No Render, as variáveis já vêm prontas, não precisa de caminhos complexos
+dotenv.config(); 
 
 const { Pool } = pg;
 
-// Cria a ponte de conexão com o Neon
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   }
 });
+
+export default pool;
 
 // Testa a conexão ao iniciar
 pool.connect((err, client, release) => {
