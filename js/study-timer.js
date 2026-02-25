@@ -118,7 +118,6 @@ const StudyTimer = {
 
     // Iniciar cronômetro para um deck
     startTimer(deckId, cardId = null) {
-        // Verificar se estamos na página de estudo de flashcards
         const studyPage = document.getElementById('studyModePage');
         if (!studyPage || studyPage.classList.contains('hidden')) {
             console.log('Cronômetro só funciona na página de estudo de flashcards');
@@ -126,15 +125,13 @@ const StudyTimer = {
         }
 
         if (this.state.isRunning && this.state.deckId === deckId) {
-            return; // Já está rodando para este deck
+            return;
         }
 
-        // Parar cronômetro anterior se houver
         if (this.state.isRunning) {
             this.stopTimer();
         }
 
-        // Obter ID do deck atual se não fornecido
         if (deckId === 'current') {
             const deckTitle = document.getElementById('studyDeckTitle');
             deckId = deckTitle ? deckTitle.textContent : 'unknown_deck';
@@ -146,7 +143,6 @@ const StudyTimer = {
         this.state.isRunning = true;
         this.config.lastActivity = Date.now();
 
-        // Criar nova sessão
         this.state.currentSession = {
             id: 'session_' + Date.now(),
             deckId: deckId,
@@ -157,57 +153,32 @@ const StudyTimer = {
             pauses: []
         };
 
-        // Iniciar o cronômetro visual
         this.startVisualTimer();
-
         this.updateDisplay();
         this.updateTimerButtons();
         this.saveState();
         this.notifyTimerStart();
     },
 
-    // Iniciar cronômetro visual (versão simplificada)
+    // Iniciar cronômetro visual
     startVisualTimer() {
-        console.log('startVisualTimer chamado');
-        
-        // Limpar timer anterior
         if (this.visualTimer) {
             clearInterval(this.visualTimer);
             this.visualTimer = null;
         }
 
-        // Verificar se o elemento existe
         const timerElement = document.getElementById('studyTimer');
-        if (!timerElement) {
-            console.log('Elemento studyTimer não encontrado');
-            return;
-        }
+        if (!timerElement) return;
 
-        console.log('Iniciando cronômetro visual...');
-        
-        // Função para atualizar o timer
         const updateTimer = () => {
-            if (!this.state.isRunning || !this.state.startTime) {
-                return;
-            }
+            if (!this.state.isRunning || !this.state.startTime) return;
 
-            const elapsed = Date.now() - this.state.startTime;
-            const minutes = Math.floor(elapsed / 60000);
-            const seconds = Math.floor((elapsed % 60000) / 1000);
-            
-            const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            timerElement.textContent = timeString;
-            
-            console.log('Timer atualizado:', timeString);
+            const elapsed = (Date.now() - this.state.startTime) + this.state.totalTime;
+            timerElement.textContent = this.formatTime(elapsed);
         };
 
-        // Atualizar imediatamente
         updateTimer();
-        
-        // Configurar intervalo
         this.visualTimer = setInterval(updateTimer, 1000);
-        
-        console.log('Cronômetro visual iniciado com sucesso');
     },
 
     // Pausar cronômetro
@@ -218,7 +189,6 @@ const StudyTimer = {
         const sessionTime = now - this.state.startTime;
         this.state.totalTime += sessionTime;
 
-        // Registrar pausa
         if (this.state.currentSession) {
             this.state.currentSession.pauses.push({
                 start: this.state.startTime,
@@ -228,6 +198,8 @@ const StudyTimer = {
         }
 
         this.state.isRunning = false;
+        if (this.visualTimer) clearInterval(this.visualTimer);
+        
         this.updateDisplay();
         this.updateTimerButtons();
         this.saveState();
@@ -242,6 +214,7 @@ const StudyTimer = {
         this.state.isRunning = true;
         this.config.lastActivity = Date.now();
 
+        this.startVisualTimer();
         this.updateDisplay();
         this.updateTimerButtons();
         this.saveState();
@@ -253,25 +226,20 @@ const StudyTimer = {
         if (!this.state.isRunning && !this.state.currentSession) return;
 
         const now = Date.now();
-        let sessionTime = 0;
-
         if (this.state.isRunning) {
-            sessionTime = now - this.state.startTime;
+            const sessionTime = now - this.state.startTime;
             this.state.totalTime += sessionTime;
         }
 
-        // Finalizar sessão atual
         if (this.state.currentSession) {
             this.state.currentSession.endTime = now;
             this.state.currentSession.totalTime = this.state.totalTime;
 
-            // Salvar sessão se tiver tempo mínimo
             if (this.state.totalTime >= this.config.minSessionTime) {
                 this.saveSession(this.state.currentSession);
             }
         }
 
-        // Resetar estado
         this.state.isRunning = false;
         this.state.startTime = null;
         this.state.currentSession = null;
@@ -279,7 +247,6 @@ const StudyTimer = {
         this.state.deckId = null;
         this.state.cardId = null;
 
-        // Limpar cronômetro visual
         if (this.visualTimer) {
             clearInterval(this.visualTimer);
             this.visualTimer = null;
@@ -293,13 +260,11 @@ const StudyTimer = {
 
     // Salvar sessão de estudo
     saveSession(session) {
-        const userId = Auth.current?.id;
-        if (!userId) return;
-
-        // Adicionar à lista de sessões
+        // Verifica se existe o objeto Auth global (comum no seu projeto)
+        const userId = window.Auth?.current?.id || 'guest';
+        
         this.state.sessionHistory.push(session);
 
-        // Salvar no sistema de estatísticas
         if (typeof Storage !== 'undefined' && Storage.saveStudySession) {
             Storage.saveStudySession(userId, {
                 deckId: session.deckId,
@@ -311,15 +276,13 @@ const StudyTimer = {
             });
         }
 
-        // Salvar no localStorage como backup
         const userSessions = JSON.parse(localStorage.getItem(`medFocusSessions_${userId}`) || '[]');
         userSessions.push(session);
         localStorage.setItem(`medFocusSessions_${userId}`, JSON.stringify(userSessions));
 
-        console.log('Sessão de estudo salva:', session);
+        console.log('Sessão de estudo salva localmente');
     },
 
-    // Registrar estudo de um card
     recordCardStudy(cardId, quality, responseTime) {
         if (!this.state.currentSession) return;
 
@@ -334,17 +297,13 @@ const StudyTimer = {
         this.saveState();
     },
 
-    // Obter tempo atual da sessão
     getCurrentSessionTime() {
         if (!this.state.isRunning || !this.state.startTime) {
             return this.state.totalTime;
         }
-
-        const currentTime = Date.now() - this.state.startTime;
-        return this.state.totalTime + currentTime;
+        return this.state.totalTime + (Date.now() - this.state.startTime);
     },
 
-    // Formatar tempo em formato legível
     formatTime(milliseconds) {
         const totalSeconds = Math.floor(milliseconds / 1000);
         const hours = Math.floor(totalSeconds / 3600);
@@ -353,27 +312,21 @@ const StudyTimer = {
 
         if (hours > 0) {
             return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        } else {
-            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     },
 
-    // Atualizar display do cronômetro
     updateDisplay() {
         const timerElement = document.getElementById('studyTimer');
         if (!timerElement) return;
 
         const currentTime = this.getCurrentSessionTime();
-        const formattedTime = this.formatTime(currentTime);
+        timerElement.textContent = this.formatTime(currentTime);
 
-        timerElement.textContent = formattedTime;
-
-        // Adicionar classe de estado
         timerElement.classList.toggle('timer-running', this.state.isRunning);
         timerElement.classList.toggle('timer-paused', !this.state.isRunning && this.state.currentSession);
     },
 
-    // Atualizar botões do cronômetro
     updateTimerButtons() {
         const startBtn = document.getElementById('timerStartBtn');
         const pauseBtn = document.getElementById('timerPauseBtn');
@@ -382,153 +335,48 @@ const StudyTimer = {
         if (!startBtn || !pauseBtn || !stopBtn) return;
 
         if (this.state.isRunning) {
-            // Cronômetro rodando
             startBtn.classList.add('hidden');
             pauseBtn.classList.remove('hidden');
             stopBtn.classList.remove('hidden');
         } else if (this.state.currentSession) {
-            // Cronômetro pausado
             startBtn.classList.remove('hidden');
             pauseBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
         } else {
-            // Cronômetro parado
             startBtn.classList.remove('hidden');
             pauseBtn.classList.add('hidden');
             stopBtn.classList.add('hidden');
         }
     },
 
-    // Iniciar auto-save
     startAutoSave() {
         setInterval(() => {
-            if (this.state.isRunning) {
-                this.saveState();
-            }
+            if (this.state.isRunning) this.saveState();
         }, this.config.autoSaveInterval);
     },
 
-    // Verificar inatividade periodicamente
-    checkInactivity() {
-        setInterval(() => {
-            if (this.state.isRunning && this.isUserInactive()) {
-                this.pauseTimer();
-            }
-        }, 60000); // Verificar a cada minuto
-    },
-
-    // Notificações
-    notifyTimerStart() {
-        this.showNotification('Cronômetro iniciado', 'success');
-    },
-
-    notifyTimerPause() {
-        this.showNotification('Cronômetro pausado', 'info');
-    },
-
-    notifyTimerResume() {
-        this.showNotification('Cronômetro retomado', 'success');
-    },
-
-    notifyTimerStop() {
-        const sessionTime = this.state.totalTime;
-        const formattedTime = this.formatTime(sessionTime);
-        this.showNotification(`Sessão finalizada: ${formattedTime}`, 'info');
-    },
-
-    // Mostrar notificação
     showNotification(message, type = 'info') {
-        if (typeof Notifications !== 'undefined' && Notifications.show) {
-            Notifications.show(message, type);
+        if (window.Notifications && typeof window.Notifications.show === 'function') {
+            window.Notifications.show(message, type);
         } else {
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
     },
 
-    // Obter estatísticas de tempo
-    getTimeStats(userId, deckId = null, period = 30) {
-        const sessions = JSON.parse(localStorage.getItem(`medFocusSessions_${userId}`) || '[]');
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - period);
-
-        const filteredSessions = sessions.filter(session => {
-            const sessionDate = new Date(session.startTime);
-            const matchesDeck = !deckId || session.deckId === deckId;
-            const matchesPeriod = sessionDate >= startDate && sessionDate <= endDate;
-            return matchesDeck && matchesPeriod;
-        });
-
-        const totalTime = filteredSessions.reduce((sum, session) => sum + session.totalTime, 0);
-        const totalSessions = filteredSessions.length;
-        const averageTime = totalSessions > 0 ? totalTime / totalSessions : 0;
-
-        return {
-            totalTime: totalTime,
-            totalSessions: totalSessions,
-            averageTime: averageTime,
-            formattedTotalTime: this.formatTime(totalTime),
-            formattedAverageTime: this.formatTime(averageTime),
-            sessions: filteredSessions
-        };
-    },
-
-    // Obter tempo total de estudo hoje
-    getTodayStudyTime(userId) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        const sessions = JSON.parse(localStorage.getItem(`medFocusSessions_${userId}`) || '[]');
-        const todaySessions = sessions.filter(session => {
-            const sessionDate = new Date(session.startTime);
-            return sessionDate >= today && sessionDate < tomorrow;
-        });
-
-        const totalTime = todaySessions.reduce((sum, session) => sum + session.totalTime, 0);
-        return {
-            totalTime: totalTime,
-            formattedTime: this.formatTime(totalTime),
-            sessions: todaySessions
-        };
+    notifyTimerStart() { this.showNotification('Cronômetro iniciado', 'success'); },
+    notifyTimerPause() { this.showNotification('Cronômetro pausado', 'info'); },
+    notifyTimerResume() { this.showNotification('Cronômetro retomado', 'success'); },
+    notifyTimerStop() { 
+        const formattedTime = this.formatTime(this.state.totalTime);
+        this.showNotification(`Sessão finalizada: ${formattedTime}`, 'info'); 
     }
 };
 
-// Inicializar quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', () => {
+// Inicialização segura
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => StudyTimer.init());
+} else {
     StudyTimer.init();
-});
+}
 
-// Exportar para uso global
 window.StudyTimer = StudyTimer;
-
-// Função de debug para testar o cronômetro
-window.debugStudyTimer = () => {
-    console.log('=== DEBUG STUDY TIMER ===');
-    console.log('Estado:', StudyTimer.state);
-    console.log('Config:', StudyTimer.config);
-    console.log('Elemento studyTimer:', document.getElementById('studyTimer'));
-    console.log('Página de estudo:', document.getElementById('studyModePage'));
-    
-    // Testar inicialização
-    StudyTimer.init();
-    
-    // Testar início do timer
-    setTimeout(() => {
-        console.log('Testando startTimer...');
-        StudyTimer.startTimer('test_deck');
-    }, 1000);
-};
-
-// Função simples para iniciar cronômetro manualmente
-window.startStudyTimer = () => {
-    console.log('Iniciando cronômetro manualmente...');
-    StudyTimer.startTimer('manual_start');
-};
-
-// Função para parar cronômetro manualmente
-window.stopStudyTimer = () => {
-    console.log('Parando cronômetro manualmente...');
-    StudyTimer.stopTimer();
-};
