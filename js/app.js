@@ -108,6 +108,17 @@ class MedFocusApp {
                     lastLogin: "2025-09-08T10:00:00Z"
                 },
                 {
+                    id: "admin_002", // Novo ID único
+                    name: "Segundo Administrador",
+                    email: "novoadmin@medfocus.com",
+                    password: "outrasenha123",
+                    role: "admin", // <--- Dando as mesmas permissões
+                    isActive: true,
+                    created: new Date().toISOString(),
+                    lastLogin: null
+                }
+            
+                {
                     id: "user_001",
                     name: "João Silva",
                     email: "joao@email.com",
