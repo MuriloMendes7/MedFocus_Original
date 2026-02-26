@@ -523,7 +523,7 @@ class MedFocusApp {
         }
     }
 
-    handleRegister() {
+    async handleRegister() { // Adicionado async aqui
         const name = document.getElementById('registerName').value.trim();
         const email = document.getElementById('registerEmail').value.trim();
         const phone = document.getElementById('registerPhone').value.trim();
@@ -531,29 +531,16 @@ class MedFocusApp {
         const confirmPassword = document.getElementById('registerPasswordConfirm').value.trim();
         const plan = document.getElementById('registerPlan').value;
         const errorDiv = document.getElementById('registerError');
-
-        if (!name || !email || !password || !confirmPassword) {
-            this.showError(errorDiv, 'Por favor, preencha todos os campos obrigatórios!');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            this.showError(errorDiv, 'As senhas não coincidem!');
-            return;
-        }
-
-        if (password.length < 6) {
-            this.showError(errorDiv, 'A senha deve ter pelo menos 6 caracteres!');
-            return;
-        }
-
+    
+        // ... (manter as validações de senha e campos vazios)
+    
         const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
-
+    
         if (users.find(u => u.email === email)) {
             this.showError(errorDiv, 'Este email já está em uso!');
             return;
         }
-
+    
         const newUser = {
             id: 'user_' + Date.now(),
             name,
@@ -566,24 +553,26 @@ class MedFocusApp {
             created: new Date().toISOString(),
             lastLogin: new Date().toISOString()
         };
-
+    
+        // 1. Salva localmente primeiro (segurança)
         users.push(newUser);
         localStorage.setItem('medFocusUsers', JSON.stringify(users));
-
         this.currentUser = newUser;
         localStorage.setItem('medFocusCurrentUser', JSON.stringify(newUser));
-
-        // Enviar dados para o backend (perfil + flashcards)
-        this.syncUserDataToBackend(newUser).catch(error => {
-            console.warn('Não foi possível sincronizar com o backend:', error);
-            // Continua mesmo se falhar o backend
-        });
-
-        // Notify userAdmin to reload the user list if it exists
+    
+        // 2. Tenta sincronizar com o backend ANTES de mudar de página
+        try {
+            this.showNotification('Sincronizando com o servidor...', 'info');
+            await this.syncUserDataToBackend(newUser); // Espera a conclusão
+        } catch (error) {
+            console.warn('Erro na sincronização inicial, mas o usuário foi criado localmente:', error);
+        }
+    
+        // 3. Só agora muda a interface
         if (window.userAdmin && typeof window.userAdmin.loadUsers === 'function') {
             window.userAdmin.loadUsers();
         }
-
+    
         this.showPage('dashboardPage');
         this.updateUIForLoggedUser();
         this.showNotification('Cadastro realizado com sucesso!', 'success');
@@ -746,7 +735,7 @@ class MedFocusApp {
                         cards: Array.isArray(deck.cards) ? deck.cards : []
                     };
 
-                    const response = await fetch(`${this.backendUrl}/api/flashcards`, {
+                    const response = await (`${this.backendUrl}/api/flashcards`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
