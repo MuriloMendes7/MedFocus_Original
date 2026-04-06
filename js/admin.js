@@ -1,4 +1,4 @@
-﻿// MedFocus Cards - Admin Module
+﻿﻿// MedFocus Cards - Admin Module
 // Painel de administração completo com gestão de usuários, conteúdo e analytics
 
 const Admin = {
@@ -137,7 +137,7 @@ const Admin = {
                     backgroundColor: [
                         'rgba(123, 138, 151, 0.8)',
                         'rgba(46, 196, 182, 0.8)',
-                        'rgba(18, 78, 102, 0.8)'
+                        'rgba(75, 163, 227, 0.8)'
                     ],
                     borderWidth: 2,
                     borderColor: '#fff'
@@ -598,8 +598,8 @@ const Admin = {
                 datasets: [{
                     label: 'Usuários Ativos',
                     data: data.values,
-                    backgroundColor: 'rgba(18, 78, 102, 0.7)',
-                    borderColor: 'rgba(18, 78, 102, 1)',
+                    backgroundColor: 'rgba(75, 163, 227, 0.7)',
+                    borderColor: 'rgba(75, 163, 227, 1)',
                     borderWidth: 1
                 }]
             },
@@ -637,7 +637,7 @@ const Admin = {
                     data: [data.basic, data.premium],
                     backgroundColor: [
                         'rgba(46, 196, 182, 0.8)',
-                        'rgba(18, 78, 102, 0.8)'
+                        'rgba(75, 163, 227, 0.8)'
                     ]
                 }]
             },
@@ -920,25 +920,25 @@ const Admin = {
             return distribution;
         },
 
-        // Obter atividades recentes (simuladas)
+        // Obter atividades recentes (reais)
         getRecentActivities: () => {
-            return [
-                {
+            const allUsers = Storage.getUsers() || [];
+            const activities = [];
+            
+            const sortedUsers = [...allUsers].sort((a, b) => new Date(b.createdAt || b.created) - new Date(a.createdAt || a.created));
+            
+            sortedUsers.slice(0, 5).forEach(user => {
+                const date = new Date(user.createdAt || user.created);
+                activities.push({
                     icon: 'fas fa-user-plus',
-                    text: 'Novo usuário cadastrado: João Silva',
-                    time: '2 minutos atrás'
-                },
-                {
-                    icon: 'fas fa-upload',
-                    text: 'Novo baralho importado: Anatomia Humana',
-                    time: '15 minutos atrás'
-                },
-                {
-                    icon: 'fas fa-crown',
-                    text: 'Usuário upgraded para plano Premium',
-                    time: '1 hora atrás'
-                }
-            ];
+                    text: `Novo usuário: ${user.name || user.email}`,
+                    time: date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR'),
+                    timestamp: date.getTime()
+                });
+            });
+            
+            if (activities.length === 0) return [];
+            return activities.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
         },
 
         // Dados de novos usuários (últimos 30 dias)
@@ -971,10 +971,25 @@ const Admin = {
 
         // Dados de engajamento diário
         getDailyEngagementData: () => {
-            // Dados simulados - implementar coleta real
-            const labels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-            const values = [45, 52, 48, 61, 55, 32, 28];
+            const allUsers = Storage.getUsers() || [];
+            const labels = [];
+            const values = [];
             
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateKey = d.toISOString().split('T')[0];
+                labels.push(d.toLocaleDateString('pt-BR', { weekday: 'short' }));
+                
+                let activeToday = 0;
+                allUsers.forEach(user => {
+                    const stats = Storage.getUserStats(user.id);
+                    if (stats && stats[dateKey] && stats[dateKey].reviews > 0) {
+                        activeToday++;
+                    }
+                });
+                values.push(activeToday);
+            }
             return { labels, values };
         },
 
@@ -989,9 +1004,31 @@ const Admin = {
 
         // Dados de retenção
         getRetentionData: () => {
-            // Dados simulados - implementar cálculo real
+            const allUsers = Storage.getUsers() || [];
+            let d1 = 0, d7 = 0, d30 = 0, total = 0;
+            const now = new Date();
+            
+            allUsers.forEach(user => {
+                if (!user.created && !user.createdAt) return;
+                const created = new Date(user.created || user.createdAt);
+                if (!user.lastLogin && !user.lastLoginAt) return;
+                const lastLogin = new Date(user.lastLogin || user.lastLoginAt);
+                
+                const daysSinceCreation = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+                const daysActive = Math.floor((lastLogin - created) / (1000 * 60 * 60 * 24));
+                
+                if (daysSinceCreation >= 1) { total++; if (daysActive >= 1) d1++; }
+                if (daysSinceCreation >= 7) { if (daysActive >= 7) d7++; }
+                if (daysSinceCreation >= 30) { if (daysActive >= 30) d30++; }
+            });
+            
             return {
-                values: [100, 75, 45, 30] // Retenção em D1, D7, D30, D90
+                values: [
+                    total > 0 ? Math.round((d1 / total) * 100) : 0,
+                    total > 0 ? Math.round((d7 / total) * 100) : 0,
+                    total > 0 ? Math.round((d30 / total) * 100) : 0,
+                    0
+                ]
             };
         },
 
@@ -1028,7 +1065,3 @@ const Admin = {
         }
     }
 };
-
-
-
-

@@ -118,13 +118,17 @@ const StudyTimer = {
 
     // Iniciar cronômetro para um deck
     startTimer(deckId, cardId = null) {
-        const studyPage = document.getElementById('studyModePage');
-        if (!studyPage || studyPage.classList.contains('hidden')) {
+        if (window.app && window.app.currentPage !== 'studyModePage') {
             console.log('Cronômetro só funciona na página de estudo de flashcards');
             return;
         }
 
-        if (this.state.isRunning && this.state.deckId === deckId) {
+        if (this.state.isRunning && (this.state.deckId === deckId || deckId === 'current')) {
+            return;
+        }
+
+        if (!this.state.isRunning && this.state.currentSession && (deckId === 'current' || this.state.currentSession.deckId === deckId)) {
+            this.resumeTimer();
             return;
         }
 

@@ -1,4 +1,4 @@
-﻿// MedFocus Cards - Quizzes Module
+﻿﻿// MedFocus Cards - Quizzes Module
 // Sistema completo de simulados com questões múltipla escolha
 
 const Quizzes = {
@@ -348,7 +348,7 @@ const Quizzes = {
                         <div class="question-number">
                             Questão ${index + 1}
                         </div>
-                        <div class="question-status">
+                        <div class="question-status" style="color: ${result.isCorrect ? '#2ecc71' : '#ff4757'};">
                             ${result.isCorrect ? 
                                 '<i class="fas fa-check-circle"></i> Correta' : 
                                 '<i class="fas fa-times-circle"></i> Incorreta'
@@ -367,169 +367,37 @@ const Quizzes = {
                             const optionText = result.options[option];
                             
                             let className = 'option-review';
+                            let inlineStyle = 'color: inherit; padding: 12px; margin-bottom: 8px; border-radius: 8px; border: 2px solid; ';
                             if (isCorrectAnswer) {
                                 className += ' correct-answer';
+                                inlineStyle += 'background: rgba(40, 167, 69, 0.15); border-color: #2ecc71;';
                             } else if (isUserAnswer && !isCorrectAnswer) {
                                 className += ' wrong-answer';
+                                inlineStyle += 'background: rgba(220, 53, 69, 0.15); border-color: #ff4757;';
+                            } else {
+                                inlineStyle += 'background: var(--color-card-bg); border-color: var(--color-card-border);';
                             }
                             
                             return `
-                                <div class="${className}">
-                                    <div class="option-letter">${option}</div>
-                                    <div class="option-text">${optionText}</div>
-                                    ${isUserAnswer ? '<div class="user-answer-indicator">Sua resposta</div>' : ''}
-                                    ${isCorrectAnswer ? '<div class="correct-answer-indicator">Resposta correta</div>' : ''}
+                                <div class="${className}" style="${inlineStyle}">
+                                    <div class="option-letter" style="font-weight: bold; display: inline-block; margin-right: 8px;">${option})</div>
+                                    <div class="option-text" style="display: inline-block;">${optionText}</div>
+                                    ${isUserAnswer ? '<div class="user-answer-indicator" style="font-size: 0.85em; opacity: 0.8; margin-top: 4px;">Sua resposta</div>' : ''}
+                                    ${isCorrectAnswer ? '<div class="correct-answer-indicator" style="font-size: 0.85em; color: #2ecc71; margin-top: 4px;">Resposta correta</div>' : ''}
                                 </div>
                             `;
                         }).join('')}
                     </div>
                     
                     ${result.explanation ? `
-                        <div class="question-explanation">
-                            <h5><i class="fas fa-lightbulb"></i> Explicação:</h5>
-                            <p>${result.explanation}</p>
+                        <div class="question-explanation" style="background: rgba(31, 184, 205, 0.1); border: 1px solid rgba(31, 184, 205, 0.3); border-radius: 8px; padding: 12px; margin-top: 12px; color: inherit; font-size: 14px;">
+                            <h5 style="margin-bottom: 8px;"><i class="fas fa-lightbulb"></i> Explicação:</h5>
+                            <p style="line-height: 1.5;">${result.explanation}</p>
                         </div>
                     ` : ''}
                 </div>
             `).join('');
-        }
-    },
-
-    // Inicializar módulo
-    init: () => {
-        if (!Auth.requireAuth()) return;
-        
-        Quizzes.loadQuizzes();
-        
-        // Verificar se há progresso salvo
-        const urlParams = new URLSearchParams(window.location.search);
-        const startQuizId = urlParams.get('start');
-        
-        if (startQuizId) {
-            // Verificar progresso salvo
-            const savedProgress = Quizzes.execution.restoreProgress();
-            if (savedProgress && savedProgress.quizId === startQuizId) {
-                if (confirm('Há um quiz em andamento. Deseja continuar de onde parou?')) {
-                    Quizzes.execution.restoreFromProgress(savedProgress);
-                } else {
-                    sessionStorage.removeItem('quiz_progress');
-                    Quizzes.execution.start(startQuizId);
-                }
-            } else {
-                Quizzes.execution.start(startQuizId);
-            }
-        }
-    },
-
-    // Carregar lista de quizzes
-    loadQuizzes: () => {
-        const userId = Auth.current.id;
-        const userQuizzes = Storage.getUserQuizzes(userId);
-        const container = document.getElementById('quizzesGrid');
-        
-        if (!container) return;
-        
-        if (userQuizzes.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-question-circle fa-3x"></i>
-                    <h3>Nenhum simulado encontrado</h3>
-                    <p>Importe seu primeiro simulado para começar a praticar</p>
-                    <button class="btn btn--primary" onclick="openImportModal()">
-                        <i class="fas fa-upload"></i>
-                        Importar Simulado
-                    </button>
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = userQuizzes.map(quiz => `
-            <div class="quiz-card">
-                <div class="quiz-header">
-                    <h4>${quiz.title}</h4>
-                    <span class="quiz-subject">${quiz.subject || 'Geral'}</span>
-                </div>
-                <div class="quiz-description">
-                    ${quiz.description || 'Sem descrição'}
-                </div>
-                <div class="quiz-stats">
-                    <div class="quiz-stat">
-                        <i class="fas fa-list"></i>
-                        ${quiz.questions.length} questões
-                    </div>
-                    <div class="quiz-stat">
-                        <i class="fas fa-clock"></i>
-                        ${quiz.timeLimit} min
-                    </div>
-                    <div class="quiz-stat">
-                        <i class="fas fa-play"></i>
-                        ${quiz.attempts} tentativas
-                    </div>
-                    ${quiz.bestScore > 0 ? `
-                        <div class="quiz-stat">
-                            <i class="fas fa-trophy"></i>
-                            Melhor: ${quiz.bestScore}%
-                        </div>
-                    ` : ''}
-                </div>
-                <div class="quiz-actions">
-                    <button class="btn btn--primary" onclick="Quizzes.execution.start('${quiz.id}')">
-                        <i class="fas fa-play"></i>
-                        Iniciar
-                    </button>
-                    <button class="btn btn--outline btn--sm" onclick="editQuiz('${quiz.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn--outline btn--sm" onclick="deleteQuiz('${quiz.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-    }
-};
-
-// Funções globais para o HTML
-function reviewQuiz() {
-    if (Quizzes.currentReviewResults) {
-        Quizzes.ui.reviewQuiz(Quizzes.currentReviewResults);
-    } else {
-        console.error('Nenhum resultado disponível para revisão');
-    }
-}
-
-// Função para iniciar revisão de um simulado específico
-function startQuizReview(quizId) {
-    const userId = Auth.current.id;
-    const userResults = Storage.getUserQuizResults(userId);
-    const quizResults = userResults.filter(result => result.quizId === quizId);
-    
-    if (quizResults.length === 0) {
-        alert('Nenhum resultado encontrado para este simulado');
-        return;
-    }
-    
-    // Pegar o resultado mais recente
-    const latestResult = quizResults.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0];
-    Quizzes.ui.reviewQuiz(latestResult);
-}
-
-// Função para iniciar revisão de um simulado específico
-function startQuizReview(quizId) {
-    const userId = Auth.current.id;
-    const userResults = Storage.getUserQuizResults(userId);
-    const quizResults = userResults.filter(result => result.quizId === quizId);
-    
-    if (quizResults.length === 0) {
-        alert('Nenhum resultado encontrado para este simulado');
-        return;
-    }
-    
-    // Pegar o resultado mais recente
-    const latestResult = quizResults.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0];
-    Quizzes.ui.reviewQuiz(latestResult);
-}
+        },
 
         // Salvar progresso (para recuperação)
         saveProgress: () => {
@@ -954,8 +822,30 @@ function importQuiz() {
     });
 }
 
-function pauuiz() {
+function pauseQuiz() {
     Quizzes.execution.pause();
+}
+
+function reviewQuiz() {
+    if (Quizzes.currentReviewResults) {
+        Quizzes.execution.reviewQuiz(Quizzes.currentReviewResults);
+    } else {
+        console.error('Nenhum resultado disponível para revisão');
+    }
+}
+
+function startQuizReview(quizId) {
+    const userId = Auth.current.id;
+    const userResults = Storage.getUserQuizResults(userId);
+    const quizResults = userResults.filter(result => result.quizId === quizId);
+    
+    if (quizResults.length === 0) {
+        alert('Nenhum resultado encontrado para este simulado');
+        return;
+    }
+    
+    const latestResult = quizResults.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0];
+    Quizzes.execution.reviewQuiz(latestResult);
 }
 
 function exitQuiz() {
@@ -1008,8 +898,3 @@ function deleteQuiz(quizId) {
         Quizzes.loadQuizzes();
     }
 }
-
-
-
-
-

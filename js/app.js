@@ -16,74 +16,34 @@ class MedFocusApp {
         this.charts = {};
         this.currentFlashcardsCategory = null;
         this.currentQuizzesCategory = null;
-        this.backendUrl = 'https://medfocus.onrender.com';
+        
+        // Alternância inteligente de ambiente (Local vs Produção)
+        this.backendUrl = window.MEDFOCUS_BACKEND_URL || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+            ? 'http://localhost:4000'
+            : 'https://medfocus.onrender.com');
+
         this.planFlashcardBundles = {
-            free: {
-                bundle: 'starter_core',
-                description: 'Deck introdutório com anatomia básica',
-                files: [
-                    'flashcards/anatomia-basica.json'
-                ]
-            },
-            basic: {
-                bundle: 'basic_clinico',
-                description: 'Inclui anatomia básica + módulos clínicos',
-                files: [
-                    'flashcards/anatomia-basica.json',
-                    'flashcards/clinico-essential.json'
-                ]
-            },
-            premium: {
-                bundle: 'premium_full',
-                description: 'Biblioteca completa com cardio, nefro e revisões rápidas',
-                files: [
-                    'flashcards/anatomia-basica.json',
-                    'flashcards/clinico-essential.json',
-                    'flashcards/premium-intensivo.json'
-                ]
-            }
+            free: { bundle: 'starter_core', files: ['flashcards/anatomia-basica.json'] },
+            basic: { bundle: 'basic_clinico', files: ['flashcards/anatomia-basica.json', 'flashcards/clinico-essential.json'] },
+            premium: { bundle: 'premium_full', files: ['flashcards/anatomia-basica.json', 'flashcards/clinico-essential.json', 'flashcards/premium-intensivo.json'] }
         };
 
-        // Bind this context to global functions
         window.app = this;
-
         this.init();
     }
 
     init() {
-        console.log('Inicializando MedFocus Cards...');
-
-        // Load theme first
         this.loadTheme();
-
-        // Initialize data
         this.initializeData();
-
-        // Setup event listeners
         this.setupEventListeners();
 
-        // Check authentication after short delay
         setTimeout(() => {
-            console.log('Iniciando checkAuth...');
             this.checkAuth();
-            // Restaurar estado após autenticação
             setTimeout(() => {
-                console.log('Iniciando restoreState...');
                 this.restoreState();
-                
-                // Sincronizar todos os usuários com o backend após inicialização
-                setTimeout(() => {
-                    this.syncAllUsersToBackend().catch(error => {
-                        console.warn('Erro ao sincronizar usuários na inicialização:', error);
-                    });
-                    
-                    // Se houver usuário logado, sincronizar seus flashcards também
-                    if (this.currentUser && this.currentUser.id) {
-                        this.syncFlashcardsToBackend(this.currentUser.id).catch(error => {
-                            console.warn('Erro ao sincronizar flashcards na inicialização:', error);
-                        });
-                    }
-                }, 1000);
+                // Sincronização inicial em background
+                this.syncAllUsersToBackend().catch(e => console.warn('Sync inicial falhou:', e));
+                if (this.currentUser) this.syncFlashcardsToBackend(this.currentUser.id);
             }, 200);
         }, 100);
     }
@@ -105,7 +65,7 @@ class MedFocusApp {
                     phone: "",
                     isActive: true, // <-- CORREÇÃO APLICADA: De "true" (string) para true (booleano)
                     created: "2025-01-01T00:00:00Z",
-                    lastLogin: "2025-09-08T10:00:00Z"
+                    lastLogin: "2026-03-30T10:00:00Z"
                 },
                 {
                     id: "admin_002", // Novo ID único
@@ -114,10 +74,10 @@ class MedFocusApp {
                     password: "outrasenha123",
                     role: "admin", // <--- Dando as mesmas permissões
                     isActive: true,
-                    created: new Date().toISOString(),
-                    lastLogin: null
-                }
-            
+                    created: "2025-01-01T00:00:00Z",
+                    lastLogin: "2026-03-30T10:00:00Z"
+                },
+
                 {
                     id: "user_001",
                     name: "João Silva",
@@ -155,7 +115,7 @@ class MedFocusApp {
                             interval: 1,
                             repetitions: 0,
                             easeFactor: 2.5,
-                            nextReview: "2025-09-08",
+                            nextReview: "2026-03-30",
                             reviews: []
                         },
                         {
@@ -208,7 +168,7 @@ class MedFocusApp {
                             interval: 1,
                             repetitions: 0,
                             easeFactor: 2.5,
-                            nextReview: "2025-09-08",
+                            nextReview: "2026-03-30",
                             reviews: []
                         }
                     ]
@@ -229,7 +189,7 @@ class MedFocusApp {
                             interval: 1,
                             repetitions: 0,
                             easeFactor: 2.5,
-                            nextReview: "2025-09-08",
+                            nextReview: "2026-03-30",
                             reviews: []
                         }
                     ]
@@ -471,7 +431,7 @@ class MedFocusApp {
         if (userIndex !== -1) {
             users[userIndex] = user;
             localStorage.setItem('medFocusUsers', JSON.stringify(users));
-            
+
             // Notify userAdmin to reload the user list if it exists
             if (window.userAdmin && typeof window.userAdmin.loadUsers === 'function') {
                 window.userAdmin.loadUsers();
@@ -480,13 +440,13 @@ class MedFocusApp {
 
         this.currentUser = user;
         localStorage.setItem('medFocusCurrentUser', JSON.stringify(user));
-        
+
         // Sincronizar com backend (login event, dados do paciente e flashcards)
         this.syncLoginWithBackend(user);
         this.syncUserDataToBackend(user).catch(error => {
             console.warn('Não foi possível sincronizar dados no login:', error);
         });
-        
+
         this.showPage('dashboardPage');
         this.updateUIForLoggedUser();
         this.showNotification('Login realizado com sucesso!', 'success');
@@ -542,16 +502,16 @@ class MedFocusApp {
         const confirmPassword = document.getElementById('registerPasswordConfirm').value.trim();
         const plan = document.getElementById('registerPlan').value;
         const errorDiv = document.getElementById('registerError');
-    
+
         // ... (manter as validações de senha e campos vazios)
-    
+
         const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
-    
+
         if (users.find(u => u.email === email)) {
             this.showError(errorDiv, 'Este email já está em uso!');
             return;
         }
-    
+
         const newUser = {
             id: 'user_' + Date.now(),
             name,
@@ -564,13 +524,13 @@ class MedFocusApp {
             created: new Date().toISOString(),
             lastLogin: new Date().toISOString()
         };
-    
+
         // 1. Salva localmente primeiro (segurança)
         users.push(newUser);
         localStorage.setItem('medFocusUsers', JSON.stringify(users));
         this.currentUser = newUser;
         localStorage.setItem('medFocusCurrentUser', JSON.stringify(newUser));
-    
+
         // 2. Tenta sincronizar com o backend ANTES de mudar de página
         try {
             this.showNotification('Sincronizando com o servidor...', 'info');
@@ -578,12 +538,12 @@ class MedFocusApp {
         } catch (error) {
             console.warn('Erro na sincronização inicial, mas o usuário foi criado localmente:', error);
         }
-    
+
         // 3. Só agora muda a interface
         if (window.userAdmin && typeof window.userAdmin.loadUsers === 'function') {
             window.userAdmin.loadUsers();
         }
-    
+
         this.showPage('dashboardPage');
         this.updateUIForLoggedUser();
         this.showNotification('Cadastro realizado com sucesso!', 'success');
@@ -608,15 +568,15 @@ class MedFocusApp {
 
         try {
             console.log('🔄 Sincronizando paciente com backend:', user.email);
-            
+
             // Primeiro, tenta buscar se já existe
             const getResponse = await fetch(`${this.backendUrl}/api/patients/${encodeURIComponent(user.email)}`);
-            
+
             if (getResponse.ok) {
                 // Paciente já existe, atualiza
                 const { data: existingPatient } = await getResponse.json();
                 console.log('📝 Paciente já existe, atualizando...', existingPatient.id);
-                
+
                 const updateResponse = await fetch(`${this.backendUrl}/api/patients/${existingPatient.id}`, {
                     method: 'PUT',
                     headers: {
@@ -635,7 +595,7 @@ class MedFocusApp {
             } else if (getResponse.status === 404) {
                 // Paciente não existe, cria novo
                 console.log('➕ Criando novo paciente no backend...');
-                
+
                 const createResponse = await fetch(`${this.backendUrl}/api/patients`, {
                     method: 'POST',
                     headers: {
@@ -666,9 +626,9 @@ class MedFocusApp {
     // Sincronizar todos os usuários existentes do localStorage
     async syncAllUsersToBackend() {
         console.log('🔄 Iniciando sincronização de todos os usuários...');
-        
+
         const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
-        
+
         if (users.length === 0) {
             console.log('ℹ️ Nenhum usuário no localStorage para sincronizar');
             return;
@@ -696,90 +656,52 @@ class MedFocusApp {
         }
 
         console.log(`✅ Sincronização concluída: ${successCount} sucesso, ${errorCount} erros`);
-        
-        if (successCount > 0) {
-            this.showNotification(`${successCount} usuário(s) sincronizado(s) com sucesso!`, 'success');
-        }
-        if (errorCount > 0) {
-            this.showNotification(`${errorCount} usuário(s) falharam na sincronização. Verifique o console.`, 'error');
-        }
+
     }
 
     // Sincronizar flashcards do usuário com o backend
     async syncFlashcardsToBackend(userId) {
         if (!this.backendUrl) {
-            console.warn('Backend URL não configurado, ignorando sync de flashcards.');
+            console.warn('Backend URL não configurado.');
             return { success: false, error: 'Backend URL não configurado' };
         }
 
-        if (!userId) {
-            console.warn('UserId não fornecido, ignorando sync de flashcards.');
-            return { success: false, error: 'UserId não fornecido' };
-        }
+        if (!userId) return { success: false, error: 'UserId não fornecido' };
 
         try {
             const decks = JSON.parse(localStorage.getItem('medFocusDecks') || '[]');
-            
-            // Filtra apenas os decks do usuário atual
             const userDecks = decks.filter(deck => deck.userId === userId);
-            
-            if (userDecks.length === 0) {
-                console.log('ℹ️ Nenhum deck para sincronizar para este usuário');
-                return { success: true, synced: 0 };
-            }
 
-            console.log(`🔄 Sincronizando ${userDecks.length} deck(s) de flashcards com o backend...`);
+            if (userDecks.length === 0) return { success: true, synced: 0 };
 
             let successCount = 0;
-            let errorCount = 0;
-
             for (const deck of userDecks) {
-                try {
-                    const payload = {
-                        deckId: deck.id,
-                        userId: deck.userId || userId,
-                        name: deck.name || 'Deck sem nome',
-                        description: deck.description || null,
-                        category: deck.category || null,
-                        theme: deck.theme || null,
-                        plan: this.currentUser?.plan || null,
-                        cards: Array.isArray(deck.cards) ? deck.cards : []
-                    };
+                const payload = {
+                    deckId: deck.id,
+                    userId: deck.userId || userId,
+                    name: deck.name || 'Deck sem nome',
+                    description: deck.description || '',
+                    category: deck.category || 'geral',
+                    theme: deck.theme || '',
+                    plan: deck.plan || 'free',
+                    cards: Array.isArray(deck.cards) ? deck.cards : []
+                };
 
-                    const response = await (`${this.backendUrl}/api/flashcards`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    });
+                // CORREÇÃO DA LINHA 750: Adicionado fetch e await corretamente
+                const response = await fetch(`${this.backendUrl}/api/flashcards`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-                    if (response.ok) {
-                        console.log(`✅ Deck "${deck.name}" sincronizado com sucesso`);
-                        successCount++;
-                    } else {
-                        const errorData = await response.json().catch(() => ({}));
-                        console.error(`❌ Erro ao sincronizar deck "${deck.name}":`, errorData);
-                        errorCount++;
-                    }
-
-                    // Pequeno delay para não sobrecarregar o servidor
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                } catch (error) {
-                    console.error(`❌ Erro ao sincronizar deck "${deck.name}":`, error);
-                    errorCount++;
+                if (response.ok) {
+                    await response.json(); // Await necessário aqui
+                    successCount++;
                 }
             }
-
-            console.log(`✅ Sincronização de flashcards concluída: ${successCount} sucesso, ${errorCount} erros`);
-
-            return {
-                success: true,
-                synced: successCount,
-                errors: errorCount
-            };
+            return { success: true, synced: successCount };
         } catch (error) {
-            console.error('❌ Erro ao sincronizar flashcards:', error);
+            console.error('Erro na sincronização de flashcards:', error);
             return { success: false, error: error.message };
         }
     }
@@ -794,10 +716,10 @@ class MedFocusApp {
         try {
             // Sincroniza perfil do usuário
             await this.syncPatientToBackend(user);
-            
+
             // Sincroniza flashcards do usuário
             await this.syncFlashcardsToBackend(user.id);
-            
+
             console.log('✅ Dados do usuário sincronizados com sucesso');
         } catch (error) {
             console.error('❌ Erro ao sincronizar dados do usuário:', error);
@@ -844,9 +766,9 @@ class MedFocusApp {
 
         // Show admin menu if admin (CÓDIGO CORRIGIDO PARA MAIOR ROBUSTEZ)
         const adminMenuItem = document.querySelector('.admin-only');
-        
-        const isAdmin = this.currentUser && this.currentUser.role === 'admin'; 
-        
+
+        const isAdmin = this.currentUser && this.currentUser.role === 'admin';
+
         if (adminMenuItem) {
             if (isAdmin) {
                 adminMenuItem.classList.remove('hidden');
@@ -1121,16 +1043,9 @@ class MedFocusApp {
                 },
                 scales: {
                     y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0,0,0,0.1)'
-                        }
+                        beginAtZero: true
                     },
-                    x: {
-                        grid: {
-                            color: 'rgba(0,0,0,0.1)'
-                        }
-                    }
+                    x: {}
                 }
             }
         });
@@ -1242,12 +1157,12 @@ class MedFocusApp {
     // === HIERARCHY SYSTEM ===
     loadFlashcardsWithHierarchy(decks, container) {
         console.log('Carregando hierarquia com', decks.length, 'decks');
-        
+
         const hierarchy = new DeckHierarchy();
         const hierarchyData = hierarchy.buildHierarchy(decks);
-        
+
         console.log('Dados da hierarquia:', hierarchyData);
-        
+
         container.innerHTML = `
             <div class="hierarchy-container">
                 <div class="hierarchy-actions">
@@ -1282,7 +1197,7 @@ class MedFocusApp {
                 </div>
             </div>
         `;
-        
+
         // Adicionar event listeners para atualizar contador
         this.setupSelectionListeners();
     }
@@ -1315,7 +1230,7 @@ class MedFocusApp {
         const selectedElements = document.querySelectorAll('.deck-item.selected');
         const selectedDecks = [];
         const decks = JSON.parse(localStorage.getItem('medFocusDecks') || '[]');
-        
+
         selectedElements.forEach(element => {
             const hierarchyDeck = element.closest('.hierarchy-deck');
             if (hierarchyDeck) {
@@ -1380,7 +1295,7 @@ class MedFocusApp {
         deckItems.forEach(item => {
             item.classList.add('selected');
         });
-        
+
         this.updateSelectionCounter();
         const selectedCount = deckItems.length;
         this.showNotification(`${selectedCount} decks selecionados!`, 'success', 'study');
@@ -1391,7 +1306,7 @@ class MedFocusApp {
         selectedItems.forEach(item => {
             item.classList.remove('selected');
         });
-        
+
         this.updateSelectionCounter();
         this.showNotification('Seleção limpa!', 'info', 'study');
     }
@@ -1451,9 +1366,12 @@ class MedFocusApp {
                         question: parts[0].trim(),
                         answer: parts[1].trim(),
                         explanation: parts[2] ? parts[2].trim() : '',
+                        tags: parts[3] ? parts[3].split(',').map(t => t.trim()) : [],
                         interval: 1,
                         repetitions: 0,
                         easeFactor: 2.5,
+                        lapses: 0,
+                        isLeech: false,
                         nextReview: new Date().toISOString().split('T')[0],
                         reviews: []
                     });
@@ -1561,23 +1479,25 @@ class MedFocusApp {
     }
 
     updateDifficultyButtons(card) {
-        // Calculate next intervals for each difficulty
         const intervals = this.calculateAllIntervals(card);
-        
-        // Determinar se deve usar minutos ou dias baseado no estado do card
-        const isLearning = !card.repetitions || card.repetitions === 0 || card.learningState === 'learning';
 
-        const buttons = [
-            { element: document.querySelector('.again-btn small'), interval: intervals.again },
-            { element: document.querySelector('.hard-btn small'), interval: intervals.hard },
-            { element: document.querySelector('.good-btn small'), interval: intervals.good },
-            { element: document.querySelector('.easy-btn small'), interval: intervals.easy }
-        ];
+        const labels = {
+            again: this.formatInterval(intervals.again, intervals.againIsMinutes),
+            hard: this.formatInterval(intervals.hard, intervals.hardIsMinutes),
+            good: this.formatInterval(intervals.good, intervals.goodIsMinutes),
+            easy: this.formatInterval(intervals.easy, intervals.easyIsMinutes)
+        };
 
-        buttons.forEach(button => {
-            if (button.element) {
-                button.element.textContent = this.formatInterval(button.interval, isLearning);
-            }
+        const selectors = {
+            again: '.again-btn small',
+            hard: '.hard-btn small',
+            good: '.good-btn small',
+            easy: '.easy-btn small'
+        };
+
+        Object.keys(selectors).forEach(key => {
+            const el = document.querySelector(selectors[key]);
+            if (el) el.textContent = labels[key];
         });
     }
 
@@ -1624,19 +1544,28 @@ class MedFocusApp {
 
     calculateAllIntervals(card) {
         const intervals = {};
+        let interval = card.interval || 0;
+        let repetitions = card.repetitions || 0;
+        let easeFactor = card.easeFactor || 2.5;
 
-        // Para cards novos ou em aprendizado, usar tempos fixos em minutos
-        if (!card.repetitions || card.repetitions === 0 || card.learningState === 'learning') {
-            intervals.again = 1; // 1 minuto
-            intervals.hard = 3; // 3 minutos
-            intervals.good = 10; // 10 minutos
-            intervals.easy = 30; // 30 minutos
+        if (repetitions === 0) {
+            intervals.again = 2;
+            intervals.againIsMinutes = true;
+            intervals.hard = 5;
+            intervals.hardIsMinutes = true;
+            intervals.good = 15;
+            intervals.goodIsMinutes = true;
+            intervals.easy = 30;
+            intervals.easyIsMinutes = true;
         } else {
-            // Para cards em revisão, usar intervalos em dias
-            intervals.again = 1; // 1 dia
-            intervals.hard = Math.max(1, Math.round(card.interval * 1.2));
-            intervals.good = Math.round(card.interval * card.easeFactor);
-            intervals.easy = Math.round(intervals.good * card.easeFactor * 1.3);
+            intervals.again = 2;
+            intervals.againIsMinutes = true;
+            intervals.hard = Math.max(1, Math.round(interval * 1.2));
+            intervals.hardIsMinutes = false;
+            intervals.good = Math.max(1, Math.round((interval === 0 ? 1 : interval) * easeFactor));
+            intervals.goodIsMinutes = false;
+            intervals.easy = Math.max(1, Math.round((interval === 0 ? 1 : interval) * easeFactor * 1.3));
+            intervals.easyIsMinutes = false;
         }
 
         return intervals;
@@ -1664,7 +1593,7 @@ class MedFocusApp {
                 const months = Math.round(interval / 30);
                 return `${months} ${months === 1 ? 'mês' : 'meses'}`;
             } else {
-                const years = Math.round(interval / 365);
+                const years = +(interval / 365).toFixed(1);
                 return `${years} ${years === 1 ? 'ano' : 'anos'}`;
             }
         }
@@ -1680,94 +1609,117 @@ class MedFocusApp {
     answerCard(quality) {
         if (!this.studySession) return;
 
-        const card = this.studySession.cards[this.studySession.currentIndex];
-        const oldCard = { ...card }; // Store previous state
+        const session = this.studySession;
+        const card = session.cards[session.currentIndex];
 
-        // Apply SM-2 Algorithm
+        // Aplica algoritmo SM-2 (Anki-like)
         const result = this.applySM2Algorithm(card, quality);
-
-        // Update card with new values
         Object.assign(card, result);
+        this.saveCardToLocalStorage(card);
 
-        // Add review record
-        card.reviews.push({
-            date: new Date().toISOString(),
-            quality: quality,
-            timeSpent: Math.round(Math.random() * 30 + 15), // Simulated time
-            previousInterval: oldCard.interval,
-            newInterval: result.interval,
-            previousEase: oldCard.easeFactor,
-            newEase: result.easeFactor
-        });
+        if (card.isLeech && quality === 1) {
+            this.showNotification(`Atenção: Este card foi marcado como Sanguessuga (Leech)! Muitos erros consecutivos.`, 'warning', 'study');
+        }
 
-        // Save to localStorage
-        this.saveDeck();
+        // Remove o card da lista atual para evitar duplicatas erradas
+        session.cards = session.cards.filter((c, idx) => idx <= session.currentIndex || c.id !== card.id);
 
-        // Update user statistics
+        // Verifica se o card foi agendado para hoje ainda (em minutos)
+        const todayStr = new Date().toISOString().split('T')[0];
+        const nextReviewStr = card.nextReview.split('T')[0];
+
+        if (nextReviewStr <= todayStr) {
+            // Vai repetir na mesma sessão
+            let offset = 2; // Again
+            if (quality === 2) offset = 5; // Hard
+            else if (quality === 3) offset = 15; // Good
+            else if (quality === 4) offset = 30; // Easy
+            const insertIndex = Math.min(session.currentIndex + offset, session.cards.length);
+            session.cards.splice(insertIndex, 0, { ...card });
+        } else {
+            console.log("Card finalizado por hoje: ", card.question);
+        }
+
         this.updateUserStats(quality >= 3);
 
-        // Move to next card
-        this.studySession.currentIndex++;
-        this.studySession.reviewed++;
+        session.currentIndex++;
 
-        this.loadCurrentCard();
+        if (session.currentIndex >= session.cards.length) {
+            this.finishStudySession();
+        } else {
+            this.loadCurrentCard();
+        }
     }
+    saveCardToLocalStorage(updatedCard) {
+        const decks = JSON.parse(localStorage.getItem('medFocusDecks') || '[]');
+        const deckId = updatedCard.sourceDeckId || (this.currentDeck ? this.currentDeck.id : null);
 
+        if (!deckId) return;
+
+        const deckIndex = decks.findIndex(d => d.id === deckId);
+        if (deckIndex >= 0) {
+            const cardIndex = decks[deckIndex].cards.findIndex(c => c.id === updatedCard.id);
+            if (cardIndex >= 0) {
+                decks[deckIndex].cards[cardIndex] = { ...decks[deckIndex].cards[cardIndex], ...updatedCard };
+                localStorage.setItem('medFocusDecks', JSON.stringify(decks));
+            }
+        }
+    }
     // SM-2 Algorithm Implementation (Exact Anki Algorithm)
     applySM2Algorithm(card, quality) {
-        let interval = card.interval || 1;
+        let interval = card.interval || 0;
         let repetitions = card.repetitions || 0;
         let easeFactor = card.easeFactor || 2.5;
+        let nextReview = new Date();
+        let lapses = card.lapses || 0;
+        let isLeech = card.isLeech || false;
 
-        // Calculate new ease factor
-        easeFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+        const calculated = this.calculateAllIntervals(card);
 
-        // Ensure ease factor doesn't go below 1.3
-        if (easeFactor < 1.3) {
-            easeFactor = 1.3;
-        }
-
-        // Calculate new interval based on quality
-        if (quality < 3) {
-            // Failed card
+        if (quality === 1) { // Again (1)
+            easeFactor = Math.max(1.3, easeFactor - 0.20);
             repetitions = 0;
-            interval = 1;
-        } else {
-            // Successful review
+            interval = 0;
+            lapses++;
+            if (lapses >= 8) isLeech = true;
+            nextReview.setMinutes(nextReview.getMinutes() + calculated.again);
+        } else if (quality === 2) { // Hard (2)
             if (repetitions === 0) {
-                interval = 1;
-                repetitions = 1;
-            } else if (repetitions === 1) {
-                interval = 6;
-                repetitions = 2;
+                nextReview.setMinutes(nextReview.getMinutes() + calculated.hard);
             } else {
-                interval = Math.round(interval * easeFactor);
-                repetitions += 1;
+                easeFactor = Math.max(1.3, easeFactor - 0.15);
+                interval = calculated.hard;
+                nextReview.setDate(nextReview.getDate() + interval);
+            }
+        } else if (quality === 3) { // Good (3)
+            if (repetitions === 0) {
+                nextReview.setMinutes(nextReview.getMinutes() + calculated.good);
+            } else {
+                interval = calculated.good;
+                nextReview.setDate(nextReview.getDate() + interval);
+            }
+            repetitions++;
+        } else if (quality === 4) { // Easy (4)
+            easeFactor += 0.15;
+            repetitions++;
+            if (calculated.easyIsMinutes) {
+                interval = 0;
+                nextReview.setMinutes(nextReview.getMinutes() + calculated.easy);
+            } else {
+                interval = calculated.easy;
+                nextReview.setDate(nextReview.getDate() + interval);
             }
         }
-
-        // Apply quality-specific modifiers
-        if (quality === 2) {
-            // Hard: reduce interval but don't reset repetitions (if > 0)
-            if (repetitions > 0) {
-                interval = Math.max(1, Math.round(interval * 1.2));
-            }
-        } else if (quality === 4) {
-            // Easy: increase interval
-            interval = Math.round(interval * 1.3);
-        }
-
-        // Calculate next review date
-        const nextReview = new Date();
-        nextReview.setDate(nextReview.getDate() + interval);
 
         return {
             interval,
             repetitions,
-            easeFactor: Math.round(easeFactor * 100) / 100, // Round to 2 decimal places
-            nextReview: nextReview.toISOString().split('T')[0]
+            easeFactor,
+            lapses,
+            isLeech,
+            nextReview: nextReview.toISOString()
         };
-    }
+}
 
     saveDeck() {
         const decks = JSON.parse(localStorage.getItem('medFocusDecks') || '[]');
@@ -1795,7 +1747,6 @@ class MedFocusApp {
         if (correct) {
             stats[this.currentUser.id][today].correct++;
         }
-        stats[this.currentUser.id][today].timeSpent += 30; // Simulated time
 
         localStorage.setItem('medFocusUserStats', JSON.stringify(stats));
     }
@@ -1826,7 +1777,7 @@ class MedFocusApp {
 
         const today = new Date().toISOString().split('T')[0];
         const stats = JSON.parse(localStorage.getItem('medFocusUserStats') || '{}');
-        
+
         if (!stats[today]) {
             stats[today] = {
                 date: today,
@@ -1850,19 +1801,19 @@ class MedFocusApp {
         const today = new Date().toISOString().split('T')[0];
         const stats = JSON.parse(localStorage.getItem('medFocusUserStats') || '{}');
         const quizStats = JSON.parse(localStorage.getItem('medFocusStats') || '{}');
-        
+
         // Calcular tempo total (flashcards + simulados)
         let totalFlashcardsTime = 0;
         let totalQuizzesTime = 0;
-        
+
         Object.values(stats).forEach(dayStats => {
             totalFlashcardsTime += dayStats.timeSpent || 0;
         });
-        
+
         Object.values(quizStats).forEach(dayStats => {
             totalQuizzesTime += dayStats.quizzesTime || 0;
         });
-        
+
         const totalTime = totalFlashcardsTime + totalQuizzesTime;
 
         // Atualizar elementos do overview
@@ -1900,10 +1851,10 @@ class MedFocusApp {
             currentDashboardView: this.currentDashboardView,
             timestamp: Date.now()
         };
-        
+
         localStorage.setItem('medFocusAppState', JSON.stringify(state));
         console.log('Estado salvo:', state);
-        
+
         // Debug: verificar se foi salvo corretamente
         const saved = localStorage.getItem('medFocusAppState');
         console.log('Estado verificado no localStorage:', saved);
@@ -1914,16 +1865,16 @@ class MedFocusApp {
             const savedState = localStorage.getItem('medFocusAppState');
             if (savedState) {
                 const state = JSON.parse(savedState);
-                
+
                 // Verificar se o estado não é muito antigo (24 horas)
                 const maxAge = 24 * 60 * 60 * 1000; // 24 horas em ms
                 if (Date.now() - state.timestamp < maxAge) {
                     console.log('Restaurando estado:', state);
-                    
+
                     // Restaurar página atual
                     if (state.currentPage && state.currentPage !== 'homePage') {
                         this.showPage(state.currentPage);
-                        
+
                         // Se for dashboard, restaurar também a aba
                         if (state.currentPage === 'dashboardPage' && state.currentDashboardView) {
                             setTimeout(() => {
@@ -2089,12 +2040,12 @@ class MedFocusApp {
             const timerElement = document.getElementById('quizTimer');
             if (timerElement) {
                 timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
+
                 // Mudar cor quando restam poucos minutos
                 if (this.quizSession.timeRemaining <= 300) { // 5 minutos
-                    timerElement.style.color = '#dc3545';
+                    timerElement.style.color = 'var(--alert, #ff4757)';
                 } else if (this.quizSession.timeRemaining <= 600) { // 10 minutos
-                    timerElement.style.color = '#ffc107';
+                    timerElement.style.color = 'var(--warning, #ffc107)';
                 } else {
                     timerElement.style.color = '';
                 }
@@ -2249,18 +2200,18 @@ class MedFocusApp {
             return;
         }
         console.log('Container encontrado, iniciando revisão');
-        
+
         const quiz = this.quizSession.quiz;
         const timeSpent = Math.round((new Date() - this.quizSession.startTime) / 1000);
         const minutes = Math.floor(timeSpent / 60);
         const seconds = timeSpent % 60;
-        
+
         // Atualizar tempo gasto na revisão
         const timeSpentEl = document.getElementById('reviewTimeSpent');
         if (timeSpentEl) {
             timeSpentEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
-        
+
         // Atualizar pontuação
         const scoreEl = document.getElementById('reviewScore');
         if (scoreEl) {
@@ -2273,13 +2224,13 @@ class MedFocusApp {
             const percentage = Math.round((correct / quiz.questions.length) * 100);
             scoreEl.textContent = `${percentage}%`;
         }
-        
+
         container.innerHTML = "";
         quiz.questions.forEach((q, idx) => {
             const userAnswer = this.quizSession.answers[q.id];
             const correctAnswer = q.correct;
             const isCorrect = userAnswer === correctAnswer;
-            
+
             const block = document.createElement("div");
             block.className = "quiz-review-card";
             block.style.cssText = `
@@ -2290,7 +2241,7 @@ class MedFocusApp {
                 margin-bottom: 16px;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             `;
-            
+
             // Status da questão (certa/errada)
             const statusEl = document.createElement("div");
             statusEl.style.cssText = `
@@ -2302,19 +2253,19 @@ class MedFocusApp {
                 font-weight: 600;
                 font-size: 14px;
             `;
-            
+
             if (isCorrect) {
-                statusEl.style.background = '#d4edda';
-                statusEl.style.color = '#155724';
-                statusEl.style.border = '1px solid #c3e6cb';
+                statusEl.style.background = 'rgba(40, 167, 69, 0.15)';
+                statusEl.style.color = '#2ecc71';
+                statusEl.style.border = '1px solid rgba(40, 167, 69, 0.3)';
                 statusEl.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i>Resposta Correta';
             } else {
-                statusEl.style.background = '#f8d7da';
-                statusEl.style.color = '#721c24';
-                statusEl.style.border = '1px solid #f5c6cb';
+                statusEl.style.background = 'rgba(220, 53, 69, 0.15)';
+                statusEl.style.color = '#ff4757';
+                statusEl.style.border = '1px solid rgba(220, 53, 69, 0.3)';
                 statusEl.innerHTML = '<i class="fas fa-times-circle" style="margin-right: 8px;"></i>Resposta Incorreta';
             }
-            
+
             // Questão
             const questionEl = document.createElement("div");
             questionEl.style.cssText = `
@@ -2324,13 +2275,13 @@ class MedFocusApp {
                 line-height: 1.4;
             `;
             questionEl.textContent = `${idx + 1}. ${q.question}`;
-            
+
             // Opções
             const optionsContainer = document.createElement("div");
             optionsContainer.style.cssText = `
                 margin-bottom: 16px;
             `;
-            
+
             q.options.forEach((opt, i) => {
                 const letter = String.fromCharCode(65 + i); // A, B, C, D
                 const optionEl = document.createElement("div");
@@ -2342,43 +2293,44 @@ class MedFocusApp {
                     font-weight: 500;
                     transition: all 0.2s ease;
                 `;
-                
+
                 if (letter === correctAnswer) {
                     // Resposta correta - verde
-                    optionEl.style.background = '#d4edda';
-                    optionEl.style.borderColor = '#28a745';
-                    optionEl.style.color = '#155724';
+                    optionEl.style.background = 'rgba(40, 167, 69, 0.15)';
+                    optionEl.style.borderColor = '#2ecc71';
+                    optionEl.style.color = 'inherit';
                 } else if (userAnswer && letter === userAnswer && !isCorrect) {
                     // Resposta do usuário (errada) - vermelho
-                    optionEl.style.background = '#f8d7da';
-                    optionEl.style.borderColor = '#dc3545';
-                    optionEl.style.color = '#721c24';
+                    optionEl.style.background = 'rgba(220, 53, 69, 0.15)';
+                    optionEl.style.borderColor = '#ff4757';
+                    optionEl.style.color = 'inherit';
                 } else {
                     // Outras opções - neutro
                     optionEl.style.background = 'var(--color-card-bg)';
                     optionEl.style.borderColor = 'var(--color-card-border)';
-                    optionEl.style.color = 'var(--color-text-secondary)';
+                    optionEl.style.color = 'inherit';
                 }
-                
+
                 optionEl.innerHTML = `<strong style="margin-right: 8px;">${letter})</strong> ${opt}`;
                 optionsContainer.appendChild(optionEl);
             });
-            
+
             // Explicação
             const explanationEl = document.createElement("div");
             if (q.explanation) {
                 explanationEl.style.cssText = `
-                    background: #e7f3ff;
-                    border: 1px solid #b3d9ff;
+                    background: rgba(31, 184, 205, 0.1);
+                    border: 1px solid rgba(31, 184, 205, 0.3);
                     border-radius: 8px;
                     padding: 12px;
                     margin-top: 12px;
                     font-size: 14px;
                     line-height: 1.5;
+                    color: inherit;
                 `;
                 explanationEl.innerHTML = `<strong>Explicação:</strong> ${q.explanation}`;
             }
-            
+
             // Montar o card
             block.appendChild(statusEl);
             block.appendChild(questionEl);
@@ -2386,10 +2338,10 @@ class MedFocusApp {
             if (q.explanation) {
                 block.appendChild(explanationEl);
             }
-            
+
             container.appendChild(block);
         });
-        
+
         this.showPage("quizReviewPage");
     }
 
@@ -2599,9 +2551,34 @@ class MedFocusApp {
             this.charts.quiz.destroy();
         }
 
-        // Simulated quiz performance data (placeholder)
-        const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
-        const scores = [75, 82, 78, 85, 88, 92];
+        const userId = this.currentUser.id;
+        const allQuizResults = JSON.parse(localStorage.getItem('medFocus_quiz_results_' + userId) || '[]');
+
+        const monthlyData = {};
+        for(let i=5; i>=0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            monthlyData[d.toISOString().substring(0,7)] = { scoreSum: 0, count: 0 };
+        }
+
+        allQuizResults.forEach(r => {
+            if(r.completedAt) {
+                const month = r.completedAt.substring(0,7);
+                if(monthlyData[month]) {
+                    monthlyData[month].scoreSum += r.score || 0;
+                    monthlyData[month].count++;
+                }
+            }
+        });
+
+        const labels = [];
+        const scores = [];
+        Object.keys(monthlyData).sort().forEach(month => {
+            const [y, m] = month.split('-');
+            labels.push(`${m}/${y.substring(2)}`);
+            const d = monthlyData[month];
+            scores.push(d.count > 0 ? Math.round(d.scoreSum / d.count) : 0);
+        });
 
         this.charts.quiz = new Chart(ctx, {
             type: 'line',
@@ -2654,10 +2631,10 @@ class MedFocusApp {
                 const count = userStats[key]?.reviews || 0;
                 // color scale
                 let bg = 'var(--color-border)';
-                if (count > 0) bg = '#e0f7fa';
-                if (count > 5) bg = '#b2ebf2';
-                if (count > 10) bg = '#80deea';
-                if (count > 20) bg = '#26c6da';
+                if (count > 0) bg = 'rgba(31, 184, 205, 0.2)';
+                if (count > 5) bg = 'rgba(31, 184, 205, 0.4)';
+                if (count > 10) bg = 'rgba(31, 184, 205, 0.7)';
+                if (count > 20) bg = 'rgba(31, 184, 205, 1)';
                 cell.style.background = bg;
                 cell.title = `${key}: ${count} reviews`;
                 col.appendChild(cell);
@@ -2905,8 +2882,11 @@ class MedFocusApp {
                     <td>${createdDate}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn btn--sm btn--outline" onclick="editUser('${user.id}')" title="Editar">
+                            <button class="btn btn--sm btn--outline" onclick="app.editUser('${user.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn--sm btn--primary" onclick="assignUserContent('${user.id}')" title="Atribuir flashcards e simulados">
+                                <i class="fas fa-share-square"></i>
                             </button>
                             <button class="btn btn--sm btn--outline" onclick="toggleUserStatus('${user.id}')" title="${isActive ? 'Desativar' : 'Ativar'}">
                                 <i class="fas fa-${isActive ? 'ban' : 'check'}"></i>
@@ -2939,12 +2919,12 @@ class MedFocusApp {
         const searchStatus = document.getElementById('searchStatus')?.value || '';
 
         const allUsers = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
-        
+
         const filtered = allUsers.filter(user => {
             const nameMatch = !searchName || (user.name && user.name.toLowerCase().includes(searchName));
             const emailMatch = !searchEmail || user.email.toLowerCase().includes(searchEmail);
             const planMatch = !searchPlan || (user.plan || 'free') === searchPlan;
-            const statusMatch = !searchStatus || 
+            const statusMatch = !searchStatus ||
                 (searchStatus === 'active' && (user.isActive === true || user.isActive === 'true')) ||
                 (searchStatus === 'inactive' && (user.isActive === false || user.isActive === 'false'));
 
@@ -2997,6 +2977,9 @@ class MedFocusApp {
                             <button class="btn btn--sm btn--outline" onclick="editUser('${user.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </button>
+                            <button class="btn btn--sm btn--primary" onclick="assignUserContent('${user.id}')" title="Atribuir flashcards e simulados">
+                                <i class="fas fa-share-square"></i>
+                            </button>
                             <button class="btn btn--sm btn--outline" onclick="toggleUserStatus('${user.id}')" title="${isActive ? 'Desativar' : 'Ativar'}">
                                 <i class="fas fa-${isActive ? 'ban' : 'check'}"></i>
                             </button>
@@ -3016,19 +2999,19 @@ class MedFocusApp {
     toggleUserStatus(userId) {
         const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
         const userIndex = users.findIndex(u => u.id === userId);
-        
+
         if (userIndex !== -1) {
             const user = users[userIndex];
             const newStatus = !(user.isActive === true || user.isActive === 'true');
             users[userIndex].isActive = newStatus;
-            
+
             localStorage.setItem('medFocusUsers', JSON.stringify(users));
-            
+
             this.showNotification(
-                `Usuário ${newStatus ? 'ativado' : 'desativado'} com sucesso!`, 
+                `Usuário ${newStatus ? 'ativado' : 'desativado'} com sucesso!`,
                 'success'
             );
-            
+
             this.loadUsersTable();
         }
     }
@@ -3036,7 +3019,7 @@ class MedFocusApp {
     editUser(userId) {
         const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
         const user = users.find(u => u.id === userId);
-        
+
         if (user) {
             // Preencher modal de edição
             document.getElementById('editUserName').value = user.name || '';
@@ -3044,747 +3027,961 @@ class MedFocusApp {
             document.getElementById('editUserPhone').value = user.phone || '';
             document.getElementById('editUserPlan').value = user.plan || 'free';
             document.getElementById('editUserRole').value = user.role || 'user';
-            
+
             // Mostrar modal
             const modal = document.getElementById('editUserModal');
             if (modal) {
-                modal.style.display = 'block';
                 modal.setAttribute('data-user-id', userId);
+                this.showModal('editUserModal');
             }
         }
     }
 
-    // === ADMIN SETTINGS ===
-    loadAdminSettings() {
-        if (!this.currentUser || this.currentUser.role !== 'admin') return;
+    // ... final do seu editUser na linha 2986
 
-        // Carregar configurações de preços
-        this.loadPricingSettings();
-        
-        // Carregar limites de planos
-        this.loadPlanLimits();
-        
-        // Carregar status de backup
-        this.loadBackupStatus();
+saveUserEdit() {
+    const modal = document.getElementById('editUserModal');
+    const userId = modal.getAttribute('data-user-id');
+    const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+    const userIndex = users.findIndex(u => u.id === userId);
+
+    if (userIndex !== -1) {
+        users[userIndex].name = document.getElementById('editUserName').value;
+        users[userIndex].email = document.getElementById('editUserEmail').value;
+        users[userIndex].phone = document.getElementById('editUserPhone').value;
+        users[userIndex].plan = document.getElementById('editUserPlan').value;
+        users[userIndex].role = document.getElementById('editUserRole').value;
+
+        localStorage.setItem('medFocusUsers', JSON.stringify(users));
+
+        this.showNotification('Usuário atualizado com sucesso!', 'success');
+        this.closeModal('editUserModal');
+        this.loadUsersTable();
+    }
+}
+
+// === CONTENT ASSIGNMENT (Admin) === na linha 2988 original
+
+
+
+// === CONTENT ASSIGNMENT (Admin) ===
+assignUserContent(userId) {
+    let modal = document.getElementById('assignContentModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.className = 'modal hidden';
+        modal.id = 'assignContentModal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3>Atribuir Conteúdo</h3>
+                    <button class="modal-close" onclick="closeModal('assignContentModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="assignContentUserId">
+                    <div class="form-group">
+                        <label class="form-label">Baralhos de Flashcards</label>
+                        <div id="assignDecksList" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--color-border); padding: 10px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Simulados</label>
+                        <div id="assignQuizzesList" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--color-border); padding: 10px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline" onclick="closeModal('assignContentModal')">Cancelar</button>
+                    <button class="btn btn--primary" onclick="applyAssignContent()">Salvar Atribuições</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
     }
 
-    loadPricingSettings() {
-        const settings = JSON.parse(localStorage.getItem('medFocusPricingSettings') || '{}');
-        
-        // Valores padrão
-        const defaultPrices = {
-            basicMonthly: 29.90,
-            basicYearly: 299.90,
-            premiumMonthly: 59.90,
-            premiumYearly: 599.90
-        };
-
-        const prices = { ...defaultPrices, ...settings };
-
-        // Atualizar campos
-        const fields = {
-            'basicMonthlyPrice': prices.basicMonthly,
-            'basicYearlyPrice': prices.basicYearly,
-            'premiumMonthlyPrice': prices.premiumMonthly,
-            'premiumYearlyPrice': prices.premiumYearly
-        };
-
-        Object.entries(fields).forEach(([id, value]) => {
-            const field = document.getElementById(id);
-            if (field) field.value = value;
+    const escapeHtml = (value) => {
+        return String(value ?? '').replace(/[&<>"']/g, (char) => {
+            switch (char) {
+                case '&': return '&amp;';
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '"': return '&quot;';
+                case '\'': return '&#39;';
+                default: return char;
+            }
         });
+    };
+
+    const userInput = document.getElementById('assignContentUserId');
+    if (userInput) userInput.value = userId;
+
+    const decksList = document.getElementById('assignDecksList');
+    const quizzesList = document.getElementById('assignQuizzesList');
+
+    const decks = JSON.parse(localStorage.getItem('medFocusDecks') || '[]');
+    const quizzes = JSON.parse(localStorage.getItem('medFocusQuizzes') || '[]');
+
+    const decksHtml = decks.length
+        ? decks.map(deck => {
+            const checked = deck.userId === userId ? 'checked' : '';
+            const label = deck.name || deck.id || 'Deck';
+            return `
+                    <label class="assign-content__item">
+                        <input type="checkbox" value="${escapeHtml(deck.id)}" ${checked}>
+                        <span>${escapeHtml(label)}</span>
+                    </label>
+                `;
+        }).join('')
+        : `<div class="empty-state">Nenhum baralho encontrado.</div>`;
+
+    const quizzesHtml = quizzes.length
+        ? quizzes.map(quiz => {
+            const checked = quiz.userId === userId ? 'checked' : '';
+            const label = quiz.title || quiz.subject || quiz.id || 'Simulado';
+            return `
+                    <label class="assign-content__item">
+                        <input type="checkbox" value="${escapeHtml(quiz.id)}" ${checked}>
+                        <span>${escapeHtml(label)}</span>
+                    </label>
+                `;
+        }).join('')
+        : `<div class="empty-state">Nenhum simulado encontrado.</div>`;
+
+    if (decksList) decksList.innerHTML = decksHtml;
+    if (quizzesList) quizzesList.innerHTML = quizzesHtml;
+
+    this.showModal('assignContentModal');
+}
+
+applyAssignContent() {
+    const userInput = document.getElementById('assignContentUserId');
+    if (!userInput) return;
+
+    const userId = userInput.value;
+    if (!userId) return;
+
+    const selectedDeckIds = Array.from(
+        document.querySelectorAll('#assignDecksList input[type="checkbox"]:checked')
+    ).map(cb => cb.value);
+
+    const selectedQuizIds = Array.from(
+        document.querySelectorAll('#assignQuizzesList input[type="checkbox"]:checked')
+    ).map(cb => cb.value);
+
+    if (selectedDeckIds.length === 0 && selectedQuizIds.length === 0) {
+        this.showNotification('Selecione ao menos um baralho e/ou um simulado.', 'warning');
+        return;
     }
 
-    loadPlanLimits() {
-        const settings = JSON.parse(localStorage.getItem('medFocusPlanLimits') || '{}');
-        
-        // Valores padrão
-        const defaultLimits = {
-            free: { decks: 3, cards: 50, quizzes: 2 },
-            basic: { decks: 20, cards: 200, quizzes: 15 },
-            premium: { decks: 999, cards: 999, quizzes: 999 }
-        };
+    const selectedDeckSet = new Set(selectedDeckIds);
+    const selectedQuizSet = new Set(selectedQuizIds);
 
-        const limits = { ...defaultLimits, ...settings };
+    const decks = JSON.parse(localStorage.getItem('medFocusDecks') || '[]');
+    const quizzes = JSON.parse(localStorage.getItem('medFocusQuizzes') || '[]');
 
-        // Atualizar campos
-        const fields = {
-            'freeMaxDecks': limits.free.decks,
-            'freeMaxCards': limits.free.cards,
-            'freeMaxQuizzes': limits.free.quizzes,
-            'basicMaxDecks': limits.basic.decks,
-            'basicMaxCards': limits.basic.cards,
-            'basicMaxQuizzes': limits.basic.quizzes,
-            'premiumMaxDecks': limits.premium.decks,
-            'premiumMaxCards': limits.premium.cards,
-            'premiumMaxQuizzes': limits.premium.quizzes
-        };
+    const nextDecks = decks.map(deck => {
+        if (!selectedDeckSet.has(deck.id)) return deck;
+        return { ...deck, userId };
+    });
 
-        Object.entries(fields).forEach(([id, value]) => {
-            const field = document.getElementById(id);
-            if (field) field.value = value;
-        });
+    const nextQuizzes = quizzes.map(quiz => {
+        if (!selectedQuizSet.has(quiz.id)) return quiz;
+        return { ...quiz, userId };
+    });
+
+    localStorage.setItem('medFocusDecks', JSON.stringify(nextDecks));
+    localStorage.setItem('medFocusQuizzes', JSON.stringify(nextQuizzes));
+
+    this.closeModal('assignContentModal');
+    this.showNotification('Conteúdo atribuído com sucesso!', 'success');
+    this.loadUsersTable();
+
+    // Sincroniza flashcards no backend (atual endpoint disponível hoje)
+    try {
+        const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+        const user = users.find(u => u.id === userId);
+        if (user) this.syncUserDataToBackend(user).catch(() => { });
+    } catch (_) { }
+}
+
+// === ADMIN SETTINGS ===
+loadAdminSettings() {
+    if (!this.currentUser || this.currentUser.role !== 'admin') return;
+
+    // Carregar configurações de preços
+    this.loadPricingSettings();
+
+    // Carregar limites de planos
+    this.loadPlanLimits();
+
+    // Carregar status de backup
+    this.loadBackupStatus();
+}
+
+loadPricingSettings() {
+    const settings = JSON.parse(localStorage.getItem('medFocusPricingSettings') || '{}');
+
+    // Valores padrão
+    const defaultPrices = {
+        basicMonthly: 29.90,
+        basicYearly: 299.90,
+        premiumMonthly: 59.90,
+        premiumYearly: 599.90
+    };
+
+    const prices = { ...defaultPrices, ...settings };
+
+    // Atualizar campos
+    const fields = {
+        'basicMonthlyPrice': prices.basicMonthly,
+        'basicYearlyPrice': prices.basicYearly,
+        'premiumMonthlyPrice': prices.premiumMonthly,
+        'premiumYearlyPrice': prices.premiumYearly
+    };
+
+    Object.entries(fields).forEach(([id, value]) => {
+        const field = document.getElementById(id);
+        if (field) field.value = value;
+    });
+}
+
+loadPlanLimits() {
+    const settings = JSON.parse(localStorage.getItem('medFocusPlanLimits') || '{}');
+
+    // Valores padrão
+    const defaultLimits = {
+        free: { decks: 3, cards: 50, quizzes: 2 },
+        basic: { decks: 20, cards: 200, quizzes: 15 },
+        premium: { decks: 999, cards: 999, quizzes: 999 }
+    };
+
+    const limits = { ...defaultLimits, ...settings };
+
+    // Atualizar campos
+    const fields = {
+        'freeMaxDecks': limits.free.decks,
+        'freeMaxCards': limits.free.cards,
+        'freeMaxQuizzes': limits.free.quizzes,
+        'basicMaxDecks': limits.basic.decks,
+        'basicMaxCards': limits.basic.cards,
+        'basicMaxQuizzes': limits.basic.quizzes,
+        'premiumMaxDecks': limits.premium.decks,
+        'premiumMaxCards': limits.premium.cards,
+        'premiumMaxQuizzes': limits.premium.quizzes
+    };
+
+    Object.entries(fields).forEach(([id, value]) => {
+        const field = document.getElementById(id);
+        if (field) field.value = value;
+    });
+}
+
+loadBackupStatus() {
+    const backupInfo = JSON.parse(localStorage.getItem('medFocusBackupInfo') || '{}');
+
+    const lastBackupDate = document.getElementById('lastBackupDate');
+    const backupSize = document.getElementById('backupSize');
+
+    if (lastBackupDate) {
+        lastBackupDate.textContent = backupInfo.lastBackup || 'Nenhum backup realizado';
     }
 
-    loadBackupStatus() {
-        const backupInfo = JSON.parse(localStorage.getItem('medFocusBackupInfo') || '{}');
-        
-        const lastBackupDate = document.getElementById('lastBackupDate');
-        const backupSize = document.getElementById('backupSize');
-        
-        if (lastBackupDate) {
-            lastBackupDate.textContent = backupInfo.lastBackup || 'Nenhum backup realizado';
-        }
-        
-        if (backupSize) {
-            backupSize.textContent = backupInfo.size || '-';
-        }
+    if (backupSize) {
+        backupSize.textContent = backupInfo.size || '-';
+    }
+}
+
+createUserFromAdmin() {
+    const name = document.getElementById('newUserName')?.value.trim();
+    const email = document.getElementById('newUserEmail')?.value.trim();
+    const phone = document.getElementById('newUserPhone')?.value.trim();
+    const password = document.getElementById('newUserPassword')?.value.trim();
+    const plan = document.getElementById('newUserPlan')?.value || 'free';
+    const isActive = !!document.getElementById('newUserActive')?.checked;
+
+    if (!name || !email || !password) {
+        this.showNotification('Preencha nome, email e senha.', 'error');
+        return;
     }
 
-    createUserFromAdmin() {
-        const name = document.getElementById('newUserName')?.value.trim();
-        const email = document.getElementById('newUserEmail')?.value.trim();
-        const phone = document.getElementById('newUserPhone')?.value.trim();
-        const password = document.getElementById('newUserPassword')?.value.trim();
-        const plan = document.getElementById('newUserPlan')?.value || 'free';
-        const isActive = !!document.getElementById('newUserActive')?.checked;
+    const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+        this.showNotification('Email já cadastrado.', 'error');
+        return;
+    }
 
-        if (!name || !email || !password) {
-            this.showNotification('Preencha nome, email e senha.', 'error');
-            return;
-        }
+    const user = {
+        id: 'user_' + Date.now(),
+        name,
+        email,
+        password,
+        role: 'student',
+        plan,
+        phone,
+        isActive,
+        created: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+    };
+    users.push(user);
+    localStorage.setItem('medFocusUsers', JSON.stringify(users));
+    this.loadUsersTable();
+    this.closeModal('createUserModal');
+    this.showNotification('Usuário criado com sucesso!', 'success');
+}
+
+loadAdminCharts() {
+    // Admin User Chart
+    const userCtx = document.getElementById('adminUserChart');
+    if (userCtx && this.charts.adminUser) {
+        this.charts.adminUser.destroy();
+    }
 
         const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
-        if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-            this.showNotification('Email já cadastrado.', 'error');
-            return;
+
+        const monthlyUsers = {};
+        for(let i=5; i>=0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            monthlyUsers[d.toISOString().substring(0,7)] = 0;
         }
 
-        const user = {
-            id: 'user_' + Date.now(),
-            name,
-            email,
-            password,
-            role: 'student',
-            plan,
-            phone,
-            isActive,
-            created: new Date().toISOString(),
-            lastLogin: new Date().toISOString()
-        };
-        users.push(user);
-        localStorage.setItem('medFocusUsers', JSON.stringify(users));
-        this.loadUsersTable();
-        this.closeModal('createUserModal');
-        this.showNotification('Usuário criado com sucesso!', 'success');
-    }
+        users.forEach(u => {
+            const dateStr = u.createdAt || u.created;
+            if (dateStr) {
+                const month = dateStr.substring(0,7);
+                if (monthlyUsers[month] !== undefined) {
+                    monthlyUsers[month]++;
+                }
+            }
+        });
 
-    loadAdminCharts() {
-        // Admin User Chart
-        const userCtx = document.getElementById('adminUserChart');
-        if (userCtx && this.charts.adminUser) {
-            this.charts.adminUser.destroy();
-        }
+        const userLabels = Object.keys(monthlyUsers).sort().map(m => m.split('-')[1] + '/' + m.split('-')[0].substring(2));
+        const userData = Object.keys(monthlyUsers).sort().map(m => monthlyUsers[m]);
 
-        if (userCtx) {
-            this.charts.adminUser = new Chart(userCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
-                    datasets: [{
-                        label: 'Novos Usuários',
-                        data: [2, 5, 3, 8, 6, 4],
-                        borderColor: '#1FB8CD',
-                        backgroundColor: 'rgba(31, 184, 205, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+    if (userCtx) {
+        this.charts.adminUser = new Chart(userCtx, {
+            type: 'line',
+            data: {
+                    labels: userLabels,
+                datasets: [{
+                    label: 'Novos Usuários',
+                        data: userData,
+                    borderColor: '#1FB8CD',
+                    backgroundColor: 'rgba(31, 184, 205, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
                     }
                 }
-            });
-        }
+            }
+        });
+    }
 
-        // Admin Revenue Chart
-        const revenueCtx = document.getElementById('adminRevenueChart');
-        if (revenueCtx && this.charts.adminRevenue) {
-            this.charts.adminRevenue.destroy();
-        }
+    // Admin Revenue Chart
+    const revenueCtx = document.getElementById('adminRevenueChart');
+    if (revenueCtx && this.charts.adminRevenue) {
+        this.charts.adminRevenue.destroy();
+    }
 
-        if (revenueCtx) {
-            this.charts.adminRevenue = new Chart(revenueCtx, {
-                type: 'pie',
-                data: {
-                    labels: ['Gratuito', 'Básico', 'Premium'],
-                    datasets: [{
-                        data: [60, 30, 10],
-                        backgroundColor: ['#ECEBD5', '#FFC185', '#1FB8CD']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
+        let free = 0, basic = 0, premium = 0;
+        users.forEach(u => {
+            if (u.plan === 'premium') premium++;
+            else if (u.plan === 'basic') basic++;
+            else free++;
+        });
+
+    if (revenueCtx) {
+        this.charts.adminRevenue = new Chart(revenueCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Gratuito', 'Básico', 'Premium'],
+                datasets: [{
+                        data: [free, basic, premium],
+                    backgroundColor: ['#ECEBD5', '#FFC185', '#1FB8CD']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
                     }
                 }
+            }
+        });
+    }
+}
+
+switchAdminTab(tab, btn) {
+    const adminSection = document.getElementById('adminContent');
+    if (!adminSection) {
+        return;
+    }
+
+    adminSection.classList.add('active');
+
+    const tabButtons = adminSection.querySelectorAll('.admin-tabs .tab-btn');
+    tabButtons.forEach(button => {
+        button.classList.remove('active');
+    });
+
+    if (!btn) {
+        btn = adminSection.querySelector('.admin-tabs .tab-btn[data-tab="' + tab + '"]');
+    }
+    if (btn) {
+        btn.classList.add('active');
+    }
+
+    adminSection.querySelectorAll('.admin-content').forEach(panel => {
+        panel.classList.remove('active');
+    });
+
+    const tabContent = document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    if (tabContent) {
+        tabContent.classList.add('active');
+    }
+
+    // Carregar dados específicos da aba
+    if (tab === 'settings') {
+        this.loadAdminSettings();
+    }
+}
+
+// === SAMPLES ===
+startSampleFlashcards() {
+    // Create a temporary sample deck
+    const sampleDeck = {
+        id: 'sample_deck',
+        name: 'Amostra - Anatomia',
+        cards: [
+            {
+                id: 'sample_1',
+                question: 'Qual é o maior osso do corpo humano?',
+                answer: 'Fêmur',
+                explanation: 'O fêmur é o osso da coxa e é o mais longo e resistente do esqueleto humano.',
+                interval: 1,
+                repetitions: 0,
+                easeFactor: 2.5,
+                nextReview: '2026-03-30',
+                reviews: []
+            },
+            {
+                id: 'sample_2',
+                question: 'Quantas costelas tem o corpo humano?',
+                answer: '24 costelas (12 pares)',
+                explanation: 'O ser humano possui 24 costelas, sendo 12 pares: 7 pares verdadeiras, 3 pares falsas e 2 pares flutuantes.',
+                interval: 1,
+                repetitions: 0,
+                easeFactor: 2.5,
+                nextReview: '2026-03-30',
+                reviews: []
+            }
+        ]
+    };
+
+    this.currentDeck = sampleDeck;
+    this.studySession = {
+        cards: sampleDeck.cards,
+        currentIndex: 0,
+        startTime: new Date(),
+        reviewed: 0
+    };
+
+    this.showPage('studyModePage');
+    this.loadCurrentCard();
+    this.showNotification('Experimentando flashcards de amostra!', 'info');
+}
+
+startSampleQuiz() {
+    const sampleQuiz = {
+        id: 'sample_quiz',
+        title: 'Mini Simulado - Anatomia',
+        subject: 'anatomia',
+        timeLimit: 5,
+        questions: [
+            {
+                id: 'sq1',
+                question: 'Qual é a função principal do coração?',
+                options: ['Filtrar o sangue', 'Bombear sangue', 'Produzir hemácias', 'Armazenar oxigênio'],
+                correct: 'B',
+                explanation: 'O coração bombeia sangue para todo o corpo.'
+            },
+            {
+                id: 'sq2',
+                question: 'Quantas câmaras tem o coração?',
+                options: ['2', '3', '4', '5'],
+                correct: 'C',
+                explanation: 'O coração tem 4 câmaras: 2 átrios e 2 ventrículos.'
+            },
+            {
+                id: 'sq3',
+                question: 'Onde se localiza o fígado?',
+                options: ['Lado esquerdo do abdomen', 'Lado direito do abdomen', 'Centro do abdomen', 'Região pélvica'],
+                correct: 'B',
+                explanation: 'O fígado está localizado no lado direito do abdomen, abaixo do diafragma.'
+            }
+        ]
+    };
+
+    this.quizSession = {
+        quiz: sampleQuiz,
+        currentQuestion: 0,
+        answers: {},
+        startTime: new Date(),
+        timeRemaining: sampleQuiz.timeLimit * 60
+    };
+
+    this.showPage('quizModePage');
+    this.startQuizTimer();
+    this.loadCurrentQuestion();
+    this.showNotification('Experimentando mini simulado!', 'info');
+}
+
+// === UTILITY FUNCTIONS ===
+getDueCardsCount(deck) {
+    if (!deck.cards) return 0;
+
+    const today = new Date().toISOString().split('T')[0];
+    return deck.cards.filter(card => card.nextReview <= today).length;
+}
+
+getDeckAccuracy(deck) {
+    if (!deck.cards) return 0;
+
+    let totalReviews = 0;
+    let correctReviews = 0;
+
+    deck.cards.forEach(card => {
+        if (card.reviews && card.reviews.length > 0) {
+            card.reviews.forEach(review => {
+                totalReviews++;
+                if (review.quality >= 3) correctReviews++;
             });
         }
+    });
+
+    return totalReviews > 0 ? Math.round((correctReviews / totalReviews) * 100) : 0;
+}
+
+getCategoryName(categoryId) {
+    const categories = {
+        anatomia: 'Anatomia',
+        fisiologia: 'Fisiologia',
+        farmacologia: 'Farmacologia',
+        patologia: 'Patologia',
+        clinica: 'Clínica Médica'
+    };
+    return categories[categoryId] || categoryId;
+}
+
+calculateStreak() {
+    const stats = JSON.parse(localStorage.getItem('medFocusUserStats') || '{}');
+    const userStats = stats[this.currentUser.id] || {};
+
+    let streak = 0;
+    const today = new Date();
+
+    for (let i = 0; i < 365; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+
+        if (userStats[dateStr] && userStats[dateStr].reviews > 0) {
+            streak++;
+        } else if (i > 0) {
+            break;
+        }
     }
 
-    switchAdminTab(tab, btn) {
-        const adminSection = document.getElementById('adminContent');
-        if (!adminSection) {
-            return;
-        }
+    return streak;
+}
 
-        adminSection.classList.add('active');
+calculateAccuracy() {
+    const stats = JSON.parse(localStorage.getItem('medFocusUserStats') || '{}');
+    const userStats = stats[this.currentUser.id] || {};
 
-        const tabButtons = adminSection.querySelectorAll('.admin-tabs .tab-btn');
-        tabButtons.forEach(button => {
-            button.classList.remove('active');
+    let totalReviews = 0;
+    let correctReviews = 0;
+
+    Object.values(userStats).forEach(dayStats => {
+        totalReviews += dayStats.reviews;
+        correctReviews += dayStats.correct;
+    });
+
+    return totalReviews > 0 ? Math.round((correctReviews / totalReviews) * 100) : 0;
+}
+
+getUserStats() {
+    const stats = JSON.parse(localStorage.getItem('medFocusUserStats') || '{}');
+    const userStats = stats[this.currentUser.id] || {};
+
+    let totalReviews = 0;
+    let correctReviews = 0;
+    let totalTime = 0;
+
+    Object.values(userStats).forEach(dayStats => {
+        totalReviews += dayStats.reviews;
+        correctReviews += dayStats.correct;
+        totalTime += dayStats.timeSpent;
+    });
+
+    return {
+        totalReviews,
+        accuracy: totalReviews > 0 ? Math.round((correctReviews / totalReviews) * 100) : 0,
+        totalTime,
+        streak: this.calculateStreak()
+    };
+}
+
+// === MODAL MANAGEMENT ===
+showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// === SIDEBAR MANAGEMENT ===
+toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('expanded');
+        this.sidebarExpanded = !this.sidebarExpanded;
+    }
+}
+
+closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.remove('expanded');
+        this.sidebarExpanded = false;
+    }
+}
+
+// === THEME MANAGEMENT ===
+toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-color-scheme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+    // Update the data attribute
+    document.documentElement.setAttribute('data-color-scheme', newTheme);
+
+    // Save to localStorage
+    localStorage.setItem('medFocusTheme', newTheme);
+
+    // Update theme toggle button icon
+    this.updateThemeToggleIcon(newTheme);
+
+    // Show notification
+    this.showNotification(`Tema ${newTheme === 'dark' ? 'escuro' : 'claro'} ativado!`, 'info');
+
+    // Force a re-render to ensure all elements pick up the new theme
+    this.forceThemeUpdate();
+
+    // Atualiza cores do Chart.js para ficarem visíveis no modo escuro
+    if (typeof Chart !== 'undefined') {
+        Chart.defaults.color = newTheme === 'dark' ? '#b2becd' : '#666';
+        Chart.defaults.borderColor = newTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+        Object.values(this.charts).forEach(chart => {
+            if (chart) chart.update();
         });
-
-        if (!btn) {
-            btn = adminSection.querySelector('.admin-tabs .tab-btn[data-tab="' + tab + '"]');
+        if (window.Stats && Stats.updateCharts) {
+            Stats.updateCharts();
         }
-        if (btn) {
-            btn.classList.add('active');
-        }
-
-        adminSection.querySelectorAll('.admin-content').forEach(panel => {
-            panel.classList.remove('active');
-        });
-
-        const tabContent = document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1));
-        if (tabContent) {
-            tabContent.classList.add('active');
-        }
-
-        // Carregar dados específicos da aba
-        if (tab === 'settings') {
-            this.loadAdminSettings();
+        if (window.Admin && typeof Admin.createAnalyticsCharts === 'function') {
+            Admin.createAnalyticsCharts();
         }
     }
+}
 
-    // === SAMPLES ===
-    startSampleFlashcards() {
-        // Create a temporary sample deck
-        const sampleDeck = {
-            id: 'sample_deck',
-            name: 'Amostra - Anatomia',
-            cards: [
-                {
-                    id: 'sample_1',
-                    question: 'Qual é o maior osso do corpo humano?',
-                    answer: 'Fêmur',
-                    explanation: 'O fêmur é o osso da coxa e é o mais longo e resistente do esqueleto humano.',
-                    interval: 1,
-                    repetitions: 0,
-                    easeFactor: 2.5,
-                    nextReview: '2025-09-08',
-                    reviews: []
-                },
-                {
-                    id: 'sample_2',
-                    question: 'Quantas costelas tem o corpo humano?',
-                    answer: '24 costelas (12 pares)',
-                    explanation: 'O ser humano possui 24 costelas, sendo 12 pares: 7 pares verdadeiras, 3 pares falsas e 2 pares flutuantes.',
-                    interval: 1,
-                    repetitions: 0,
-                    easeFactor: 2.5,
-                    nextReview: '2025-09-08',
-                    reviews: []
-                }
-            ]
-        };
+loadTheme() {
+    const savedTheme = localStorage.getItem('medFocusTheme') || 'light';
+    document.documentElement.setAttribute('data-color-scheme', savedTheme);
 
-        this.currentDeck = sampleDeck;
-        this.studySession = {
-            cards: sampleDeck.cards,
-            currentIndex: 0,
-            startTime: new Date(),
-            reviewed: 0
-        };
+    // Update theme toggle button icon
+    this.updateThemeToggleIcon(savedTheme);
 
-        this.showPage('studyModePage');
-        this.loadCurrentCard();
-        this.showNotification('Experimentando flashcards de amostra!', 'info');
+    // Force a re-render to ensure all elements pick up the theme
+    this.forceThemeUpdate();
+
+    if (typeof Chart !== 'undefined') {
+        Chart.defaults.color = savedTheme === 'dark' ? '#b2becd' : '#666';
+        Chart.defaults.borderColor = savedTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
     }
+}
 
-    startSampleQuiz() {
-        const sampleQuiz = {
-            id: 'sample_quiz',
-            title: 'Mini Simulado - Anatomia',
-            subject: 'anatomia',
-            timeLimit: 5,
-            questions: [
-                {
-                    id: 'sq1',
-                    question: 'Qual é a função principal do coração?',
-                    options: ['Filtrar o sangue', 'Bombear sangue', 'Produzir hemácias', 'Armazenar oxigênio'],
-                    correct: 'B',
-                    explanation: 'O coração bombeia sangue para todo o corpo.'
-                },
-                {
-                    id: 'sq2',
-                    question: 'Quantas câmaras tem o coração?',
-                    options: ['2', '3', '4', '5'],
-                    correct: 'C',
-                    explanation: 'O coração tem 4 câmaras: 2 átrios e 2 ventrículos.'
-                },
-                {
-                    id: 'sq3',
-                    question: 'Onde se localiza o fígado?',
-                    options: ['Lado esquerdo do abdomen', 'Lado direito do abdomen', 'Centro do abdomen', 'Região pélvica'],
-                    correct: 'B',
-                    explanation: 'O fígado está localizado no lado direito do abdomen, abaixo do diafragma.'
-                }
-            ]
-        };
-
-        this.quizSession = {
-            quiz: sampleQuiz,
-            currentQuestion: 0,
-            answers: {},
-            startTime: new Date(),
-            timeRemaining: sampleQuiz.timeLimit * 60
-        };
-
-        this.showPage('quizModePage');
-        this.startQuizTimer();
-        this.loadCurrentQuestion();
-        this.showNotification('Experimentando mini simulado!', 'info');
+updateThemeToggleIcon(theme) {
+    const themeToggle = document.querySelector('.theme-toggle i');
+    if (themeToggle) {
+        themeToggle.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
+}
 
-    // === UTILITY FUNCTIONS ===
-    getDueCardsCount(deck) {
-        if (!deck.cards) return 0;
+forceThemeUpdate() {
+    // Force a re-render by temporarily toggling a class
+    document.body.style.display = 'none';
+    document.body.offsetHeight; // Trigger reflow
+    document.body.style.display = '';
+}
 
-        const today = new Date().toISOString().split('T')[0];
-        return deck.cards.filter(card => card.nextReview <= today).length;
-    }
-
-    getDeckAccuracy(deck) {
-        if (!deck.cards) return 0;
-
-        let totalReviews = 0;
-        let correctReviews = 0;
-
-        deck.cards.forEach(card => {
-            if (card.reviews && card.reviews.length > 0) {
-                card.reviews.forEach(review => {
-                    totalReviews++;
-                    if (review.quality >= 3) correctReviews++;
-                });
-            }
-        });
-
-        return totalReviews > 0 ? Math.round((correctReviews / totalReviews) * 100) : 0;
-    }
-
-    getCategoryName(categoryId) {
-        const categories = {
-            anatomia: 'Anatomia',
-            fisiologia: 'Fisiologia',
-            farmacologia: 'Farmacologia',
-            patologia: 'Patologia',
-            clinica: 'Clínica Médica'
-        };
-        return categories[categoryId] || categoryId;
-    }
-
-    calculateStreak() {
-        const stats = JSON.parse(localStorage.getItem('medFocusUserStats') || '{}');
-        const userStats = stats[this.currentUser.id] || {};
-
-        let streak = 0;
-        const today = new Date();
-
-        for (let i = 0; i < 365; i++) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
-
-            if (userStats[dateStr] && userStats[dateStr].reviews > 0) {
-                streak++;
-            } else if (i > 0) {
-                break;
-            }
-        }
-
-        return streak;
-    }
-
-    calculateAccuracy() {
-        const stats = JSON.parse(localStorage.getItem('medFocusUserStats') || '{}');
-        const userStats = stats[this.currentUser.id] || {};
-
-        let totalReviews = 0;
-        let correctReviews = 0;
-
-        Object.values(userStats).forEach(dayStats => {
-            totalReviews += dayStats.reviews;
-            correctReviews += dayStats.correct;
-        });
-
-        return totalReviews > 0 ? Math.round((correctReviews / totalReviews) * 100) : 0;
-    }
-
-    getUserStats() {
-        const stats = JSON.parse(localStorage.getItem('medFocusUserStats') || '{}');
-        const userStats = stats[this.currentUser.id] || {};
-
-        let totalReviews = 0;
-        let correctReviews = 0;
-        let totalTime = 0;
-
-        Object.values(userStats).forEach(dayStats => {
-            totalReviews += dayStats.reviews;
-            correctReviews += dayStats.correct;
-            totalTime += dayStats.timeSpent;
-        });
-
-        return {
-            totalReviews,
-            accuracy: totalReviews > 0 ? Math.round((correctReviews / totalReviews) * 100) : 0,
-            totalTime,
-            streak: this.calculateStreak()
-        };
-    }
-
-    // === MODAL MANAGEMENT ===
-    showModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('hidden');
-        }
-    }
-
-    closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-    }
-
-    // === SIDEBAR MANAGEMENT ===
-    toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar) {
-            sidebar.classList.toggle('expanded');
-            this.sidebarExpanded = !this.sidebarExpanded;
-        }
-    }
-
-    closeSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar) {
-            sidebar.classList.remove('expanded');
-            this.sidebarExpanded = false;
-        }
-    }
-
-    // === THEME MANAGEMENT ===
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-color-scheme') || 'light';
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-
-        // Update the data attribute
-        document.documentElement.setAttribute('data-color-scheme', newTheme);
-        
-        // Save to localStorage
-        localStorage.setItem('medFocusTheme', newTheme);
-
-        // Update theme toggle button icon
-        this.updateThemeToggleIcon(newTheme);
-
-        // Show notification
-        this.showNotification(`Tema ${newTheme === 'dark' ? 'escuro' : 'claro'} ativado!`, 'info');
-        
-        // Force a re-render to ensure all elements pick up the new theme
-        this.forceThemeUpdate();
-    }
-
-    loadTheme() {
-        const savedTheme = localStorage.getItem('medFocusTheme') || 'light';
-        document.documentElement.setAttribute('data-color-scheme', savedTheme);
-        
-        // Update theme toggle button icon
-        this.updateThemeToggleIcon(savedTheme);
-        
-        // Force a re-render to ensure all elements pick up the theme
-        this.forceThemeUpdate();
-    }
-    
-    updateThemeToggleIcon(theme) {
-        const themeToggle = document.querySelector('.theme-toggle i');
-        if (themeToggle) {
-            themeToggle.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-        }
-    }
-    
-    forceThemeUpdate() {
-        // Force a re-render by temporarily toggling a class
-        document.body.style.display = 'none';
-        document.body.offsetHeight; // Trigger reflow
-        document.body.style.display = '';
-    }
-
-    // === NOTIFICATION SYSTEM ===
-    showNotification(message, type = 'info', context = 'general') {
-        // Verificar se deve mostrar notificação baseado no contexto
-        if (!this.shouldShowNotification(context)) {
-            return;
-        }
-
-        const notifications = document.getElementById('notifications');
-        if (!notifications) return;
-
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-
-        notifications.appendChild(notification);
-
-        setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
-            }
-        }, 4000);
-    }
-
+// === NOTIFICATION SYSTEM ===
+showNotification(message, type = 'info', context = 'general') {
     // Verificar se deve mostrar notificação baseado no contexto
-    shouldShowNotification(context) {
-        // Se for notificação geral, sempre mostrar
-        if (context === 'general') {
-            return true;
-        }
+    if (!this.shouldShowNotification(context)) {
+        return;
+    }
 
-        // Se for notificação de quiz, só mostrar na aba de simulados
-        if (context === 'quiz') {
-            const currentView = this.currentDashboardView || 'overview';
-            return currentView === 'quizzes';
-        }
+    const notifications = document.getElementById('notifications');
+    if (!notifications) return;
 
-        // Se for notificação de estudo, só mostrar na aba de flashcards
-        if (context === 'study') {
-            const currentView = this.currentDashboardView || 'overview';
-            return currentView === 'flashcards';
-        }
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
 
-        // Para outros contextos, sempre mostrar
+    notifications.appendChild(notification);
+
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 4000);
+}
+
+// Verificar se deve mostrar notificação baseado no contexto
+shouldShowNotification(context) {
+    // Se for notificação geral, sempre mostrar
+    if (context === 'general') {
         return true;
     }
 
-    showError(container, message) {
-        if (container) {
-            container.textContent = message;
-            container.classList.remove('hidden');
-
-            setTimeout(() => {
-                container.classList.add('hidden');
-            }, 5000);
-        }
+    // Se for notificação de quiz, só mostrar na aba de simulados
+    if (context === 'quiz') {
+        const currentView = this.currentDashboardView || 'overview';
+        return currentView === 'quizzes';
     }
 
-    // === NAVIGATION FUNCTIONS ===
-    navigateToHome() {
-        this.showPage('homePage');
+    // Se for notificação de estudo, só mostrar na aba de flashcards
+    if (context === 'study') {
+        const currentView = this.currentDashboardView || 'overview';
+        return currentView === 'flashcards';
     }
 
-    // === UI UPDATE FUNCTIONS ===
-    updateUIForLoggedUser() {
-        document.getElementById('navMenu').classList.add('hidden');
-        document.getElementById('userMenu').classList.remove('hidden');
+    // Para outros contextos, sempre mostrar
+    return true;
+}
 
-        // Update user name in navbar
-        if (this.currentUser) {
-            const userNameElement = document.getElementById('userName');
-            if (userNameElement) {
-                userNameElement.textContent = this.currentUser.name || 'Usuário';
-            }
+showError(container, message) {
+    if (container) {
+        container.textContent = message;
+        container.classList.remove('hidden');
 
-            // Update user avatar
-            this.updateUserAvatar();
+        setTimeout(() => {
+            container.classList.add('hidden');
+        }, 5000);
+    }
+}
+
+// === NAVIGATION FUNCTIONS ===
+navigateToHome() {
+    this.showPage('homePage');
+}
+
+// === UI UPDATE FUNCTIONS ===
+updateUIForLoggedUser() {
+    document.getElementById('navMenu').classList.add('hidden');
+    document.getElementById('userMenu').classList.remove('hidden');
+
+    // Update user name in navbar
+    if (this.currentUser) {
+        const userNameElement = document.getElementById('userName');
+        if (userNameElement) {
+            userNameElement.textContent = this.currentUser.name || 'Usuário';
         }
 
-        // Show admin menu if admin (CÓDIGO CORRIGIDO PARA MAIOR ROBUSTEZ)
-        const adminMenuItem = document.querySelector('.admin-only');
-        
-        const isAdmin = this.currentUser && this.currentUser.role === 'admin'; 
-        
-        if (adminMenuItem) {
-            if (isAdmin) {
-                adminMenuItem.classList.remove('hidden');
-                adminMenuItem.style.display = 'list-item'; 
-                console.log('Admin menu: MOSTRADO para:', this.currentUser.email);
-            } else {
-                adminMenuItem.classList.add('hidden');
-                adminMenuItem.style.display = 'none'; 
-                console.log('Admin menu: OCULTO. Role:', this.currentUser ? this.currentUser.role : 'no user');
-            }
-        }
+        // Update user avatar
+        this.updateUserAvatar();
     }
 
-    updateUIForGuest() {
-        document.getElementById('navMenu').classList.remove('hidden');
-        document.getElementById('userMenu').classList.add('hidden');
+    // Show admin menu if admin (CÓDIGO CORRIGIDO PARA MAIOR ROBUSTEZ)
+    const adminMenuItem = document.querySelector('.admin-only');
 
-        // Hide samples content
-        const samplesAuthMessage = document.getElementById('samplesAuthMessage');
-        const samplesContent = document.getElementById('samplesContent');
+    const isAdmin = this.currentUser && this.currentUser.role === 'admin';
 
-        if (samplesAuthMessage) samplesAuthMessage.classList.remove('hidden');
-        if (samplesContent) samplesContent.classList.add('hidden');
-
-        // Hide admin menu
-        const adminMenuItem = document.querySelector('.admin-only');
-        if (adminMenuItem) {
+    if (adminMenuItem) {
+        if (isAdmin) {
+            adminMenuItem.classList.remove('hidden');
+            adminMenuItem.style.display = 'list-item';
+            console.log('Admin menu: MOSTRADO para:', this.currentUser.email);
+        } else {
             adminMenuItem.classList.add('hidden');
             adminMenuItem.style.display = 'none';
+            console.log('Admin menu: OCULTO. Role:', this.currentUser ? this.currentUser.role : 'no user');
         }
     }
+}
 
-    updateUserAvatar() {
-        if (this.currentUser && this.currentUser.avatar) {
-            const avatarImage = document.getElementById('userAvatarImage');
-            const avatarIcon = document.getElementById('userAvatarIcon');
+updateUIForGuest() {
+    document.getElementById('navMenu').classList.remove('hidden');
+    document.getElementById('userMenu').classList.add('hidden');
 
-            if (avatarImage && avatarIcon) {
-                avatarImage.src = this.currentUser.avatar;
-                avatarImage.style.display = 'block';
-                avatarIcon.style.display = 'none';
-            }
-        } else {
-            const avatarImage = document.getElementById('userAvatarImage');
-            const avatarIcon = document.getElementById('userAvatarIcon');
+    // Hide samples content
+    const samplesAuthMessage = document.getElementById('samplesAuthMessage');
+    const samplesContent = document.getElementById('samplesContent');
 
-            if (avatarImage && avatarIcon) {
-                avatarImage.style.display = 'none';
-                avatarIcon.style.display = 'block';
-            }
+    if (samplesAuthMessage) samplesAuthMessage.classList.remove('hidden');
+    if (samplesContent) samplesContent.classList.add('hidden');
+
+    // Hide admin menu
+    const adminMenuItem = document.querySelector('.admin-only');
+    if (adminMenuItem) {
+        adminMenuItem.classList.add('hidden');
+        adminMenuItem.style.display = 'none';
+    }
+}
+
+updateUserAvatar() {
+    if (this.currentUser && this.currentUser.avatar) {
+        const avatarImage = document.getElementById('userAvatarImage');
+        const avatarIcon = document.getElementById('userAvatarIcon');
+
+        if (avatarImage && avatarIcon) {
+            avatarImage.src = this.currentUser.avatar;
+            avatarImage.style.display = 'block';
+            avatarIcon.style.display = 'none';
+        }
+    } else {
+        const avatarImage = document.getElementById('userAvatarImage');
+        const avatarIcon = document.getElementById('userAvatarIcon');
+
+        if (avatarImage && avatarIcon) {
+            avatarImage.style.display = 'none';
+            avatarIcon.style.display = 'block';
         }
     }
+}
 
-    // === AVATAR MANAGEMENT ===
-    showAvatarUploadModal() {
-        this.showModal('avatarUploadModal');
+// === AVATAR MANAGEMENT ===
+showAvatarUploadModal() {
+    this.showModal('avatarUploadModal');
 
-        // Load current avatar if exists
-        if (this.currentUser && this.currentUser.avatar) {
-            const preview = document.getElementById('avatarPreview');
-            const placeholder = document.getElementById('avatarPlaceholder');
-            if (preview && placeholder) {
-                preview.src = this.currentUser.avatar;
-                preview.style.display = 'block';
-                placeholder.style.display = 'none';
-            }
-        }
-
-        // Setup file input listener
-        const fileInput = document.getElementById('avatarFileInput');
-        if (fileInput) {
-            fileInput.onchange = (e) => this.previewAvatar(e);
-        }
-    }
-
-    previewAvatar(event) {
-        const file = event.target.files[0];
-        if (file) {
-            // Validate file size (2MB max)
-            if (file.size > 2 * 1024 * 1024) {
-                this.showNotification('Arquivo muito grande. Máximo 2MB.', 'error');
-                return;
-            }
-
-            // Validate file type
-            if (!file.type.startsWith('image/')) {
-                this.showNotification('Por favor, selecione uma imagem válida.', 'error');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const preview = document.getElementById('avatarPreview');
-                const placeholder = document.getElementById('avatarPlaceholder');
-                if (preview && placeholder) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    placeholder.style.display = 'none';
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    saveAvatar() {
-        const fileInput = document.getElementById('avatarFileInput');
+    // Load current avatar if exists
+    if (this.currentUser && this.currentUser.avatar) {
         const preview = document.getElementById('avatarPreview');
+        const placeholder = document.getElementById('avatarPlaceholder');
+        if (preview && placeholder) {
+            preview.src = this.currentUser.avatar;
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+    }
 
-        if (!fileInput.files[0] && !preview.src) {
-            this.showNotification('Por favor, selecione uma imagem.', 'error');
+    // Setup file input listener
+    const fileInput = document.getElementById('avatarFileInput');
+    if (fileInput) {
+        fileInput.onchange = (e) => this.previewAvatar(e);
+    }
+}
+
+previewAvatar(event) {
+    const file = event.target.files[0];
+    if (file) {
+        // Validate file size (2MB max)
+        if (file.size > 2 * 1024 * 1024) {
+            this.showNotification('Arquivo muito grande. Máximo 2MB.', 'error');
             return;
         }
 
-        if (fileInput.files[0]) {
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                // Save avatar to user data
-                if (this.currentUser) {
-                    this.currentUser.avatar = e.target.result;
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            this.showNotification('Por favor, selecione uma imagem válida.', 'error');
+            return;
+        }
 
-                    // Update localStorage
-                    const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
-                    const userIndex = users.findIndex(u => u.id === this.currentUser.id);
-                    if (userIndex >= 0) {
-                        users[userIndex] = this.currentUser;
-                        localStorage.setItem('medFocusUsers', JSON.stringify(users));
-                    }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const preview = document.getElementById('avatarPreview');
+            const placeholder = document.getElementById('avatarPlaceholder');
+            if (preview && placeholder) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                placeholder.style.display = 'none';
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+}
 
-                    // Update current user in localStorage
-                    localStorage.setItem('medFocusCurrentUser', JSON.stringify(this.currentUser));
+saveAvatar() {
+    const fileInput = document.getElementById('avatarFileInput');
+    const preview = document.getElementById('avatarPreview');
 
-                    // Update UI
-                    this.updateUserAvatar();
+    if (!fileInput.files[0] && !preview.src) {
+        this.showNotification('Por favor, selecione uma imagem.', 'error');
+        return;
+    }
 
-                    this.showNotification('Avatar atualizado com sucesso!', 'success');
-                    this.closeAvatarUploadModal();
+    if (fileInput.files[0]) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            // Save avatar to user data
+            if (this.currentUser) {
+                this.currentUser.avatar = e.target.result;
+
+                // Update localStorage
+                const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+                const userIndex = users.findIndex(u => u.id === this.currentUser.id);
+                if (userIndex >= 0) {
+                    users[userIndex] = this.currentUser;
+                    localStorage.setItem('medFocusUsers', JSON.stringify(users));
                 }
-            };
-            reader.readAsDataURL(file);
-        } else if (preview.src) {
-            // User is keeping current avatar
-            this.showNotification('Avatar mantido.', 'info');
-            this.closeAvatarUploadModal();
-        }
+
+                // Update current user in localStorage
+                localStorage.setItem('medFocusCurrentUser', JSON.stringify(this.currentUser));
+
+                // Update UI
+                this.updateUserAvatar();
+
+                this.showNotification('Avatar atualizado com sucesso!', 'success');
+                this.closeAvatarUploadModal();
+            }
+        };
+        reader.readAsDataURL(file);
+    } else if (preview.src) {
+        // User is keeping current avatar
+        this.showNotification('Avatar mantido.', 'info');
+        this.closeAvatarUploadModal();
     }
+}
 
-    closeAvatarUploadModal() {
-        this.closeModal('avatarUploadModal');
+closeAvatarUploadModal() {
+    this.closeModal('avatarUploadModal');
 
-        // Reset form
-        const fileInput = document.getElementById('avatarFileInput');
-        const preview = document.getElementById('avatarPreview');
-        const placeholder = document.getElementById('avatarPlaceholder');
+    // Reset form
+    const fileInput = document.getElementById('avatarFileInput');
+    const preview = document.getElementById('avatarPreview');
+    const placeholder = document.getElementById('avatarPlaceholder');
 
-        if (fileInput) fileInput.value = '';
-        if (preview) {
-            preview.src = '';
-            preview.style.display = 'none';
-        }
-        if (placeholder) placeholder.style.display = 'flex';
+    if (fileInput) fileInput.value = '';
+    if (preview) {
+        preview.src = '';
+        preview.style.display = 'none';
     }
+    if (placeholder) placeholder.style.display = 'flex';
+}
 }
 
 // Global functions for HTML onclick handlers
@@ -3837,13 +4034,13 @@ window.debugState = () => {
             currentPage: window.app.currentPage,
             currentDashboardView: window.app.currentDashboardView
         });
-        
+
         const saved = localStorage.getItem('medFocusAppState');
         console.log('Estado salvo:', saved ? JSON.parse(saved) : 'Nenhum');
-        
+
         // Testar salvamento
         window.app.saveCurrentState();
-        
+
         // Testar restauração
         setTimeout(() => {
             window.app.restoreState();
@@ -3860,7 +4057,7 @@ window.savePricingSettings = () => {
             premiumMonthly: parseFloat(document.getElementById('premiumMonthlyPrice').value) || 59.90,
             premiumYearly: parseFloat(document.getElementById('premiumYearlyPrice').value) || 599.90
         };
-        
+
         localStorage.setItem('medFocusPricingSettings', JSON.stringify(prices));
         window.app.showNotification('Preços salvos com sucesso!', 'success');
     }
@@ -3893,7 +4090,7 @@ window.savePlanLimits = () => {
                 quizzes: parseInt(document.getElementById('premiumMaxQuizzes').value) || 999
             }
         };
-        
+
         localStorage.setItem('medFocusPlanLimits', JSON.stringify(limits));
         window.app.showNotification('Limites salvos com sucesso!', 'success');
     }
@@ -3921,20 +4118,20 @@ window.createBackup = () => {
                 timestamp: new Date().toISOString(),
                 version: '1.0'
             };
-            
+
             const backupJson = JSON.stringify(backupData, null, 2);
             const backupSize = (new Blob([backupJson]).size / 1024 / 1024).toFixed(2);
-            
+
             // Salvar informações do backup
             const backupInfo = {
                 lastBackup: new Date().toLocaleString('pt-BR'),
                 size: backupSize,
                 timestamp: new Date().toISOString()
             };
-            
+
             localStorage.setItem('medFocusBackupInfo', JSON.stringify(backupInfo));
             localStorage.setItem('medFocusBackupData', backupJson);
-            
+
             window.app.loadBackupStatus();
             window.app.showNotification(`Backup criado com sucesso! Tamanho: ${backupSize} MB`, 'success');
         } catch (error) {
@@ -3971,12 +4168,12 @@ window.checkBackupStatus = () => {
 
 window.showSystemLogs = () => {
     const logs = JSON.parse(localStorage.getItem('medFocusSystemLogs') || '[]');
-    
+
     if (logs.length === 0) {
         window.app.showNotification('Nenhum log encontrado!', 'info');
         return;
     }
-    
+
     const logsHtml = logs.map(log => `
         <div class="log-entry">
             <div class="log-header">
@@ -3986,7 +4183,7 @@ window.showSystemLogs = () => {
             <div class="log-message">${log.message}</div>
         </div>
     `).join('');
-    
+
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
@@ -4006,7 +4203,7 @@ window.showSystemLogs = () => {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
 };
 
@@ -4022,7 +4219,7 @@ window.clearUserSearch = () => {
     document.getElementById('searchEmail').value = '';
     document.getElementById('searchPlan').value = '';
     document.getElementById('searchStatus').value = '';
-    
+
     if (window.app) {
         window.app.loadUsersTable();
     }
@@ -4030,14 +4227,14 @@ window.clearUserSearch = () => {
 
 window.exportUsers = () => {
     const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
-    
+
     if (users.length === 0) {
         window.app.showNotification('Nenhum usuário para exportar!', 'error');
         return;
     }
-    
+
     let csv = 'Nome,Email,Telefone,Função,Plano,Status,Último Login,Data de Cadastro\n';
-    
+
     users.forEach(user => {
         const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('pt-BR') : 'Nunca';
         const createdAt = user.createdAt || user.created;
@@ -4045,10 +4242,10 @@ window.exportUsers = () => {
         const isActive = user.isActive === true || user.isActive === 'true';
         const status = isActive ? 'Ativo' : 'Inativo';
         const plan = user.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : 'Gratuito';
-        
+
         csv += `"${user.name || ''}","${user.email}","${user.phone || ''}","${user.role}","${plan}","${status}","${lastLogin}","${createdDate}"\n`;
     });
-    
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -4058,7 +4255,7 @@ window.exportUsers = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     window.app.showNotification('Usuários exportados com sucesso!', 'success');
 };
 
@@ -4074,15 +4271,33 @@ window.editUser = (userId) => {
     }
 };
 
+window.saveUserEdit = () => {
+    if (window.app) {
+        window.app.saveUserEdit();
+    }
+};
+
 window.deleteUser = (userId) => {
     if (confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
         const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
         const filteredUsers = users.filter(u => u.id !== userId);
-        
+
         localStorage.setItem('medFocusUsers', JSON.stringify(filteredUsers));
-        
+
         window.app.showNotification('Usuário excluído com sucesso!', 'success');
         window.app.loadUsersTable();
+    }
+};
+
+window.assignUserContent = (userId) => {
+    if (window.app) {
+        window.app.assignUserContent(userId);
+    }
+};
+
+window.applyAssignContent = () => {
+    if (window.app) {
+        window.app.applyAssignContent();
     }
 };
 
@@ -4429,20 +4644,20 @@ window.debugLoginStepByStep = function () { /* ... */ };
 window.resetAllData = function () { /* ... */ };
 window.checkDataState = function () { /* ... */ };
 window.forceInitializeData = function () { /* ... */ };
-window.debugCurrentUser = function() { /* ... */ };
-window.forceShowAdminMenu = function() { /* ... */ };
-window.quickFixAdminMenu = function() { /* ... */ };
-window.deepDebugAdminMenu = function() { /* ... */ };
-window.createAdminMenuManually = function() { /* ... */ };
+window.debugCurrentUser = function () { /* ... */ };
+window.forceShowAdminMenu = function () { /* ... */ };
+window.quickFixAdminMenu = function () { /* ... */ };
+window.deepDebugAdminMenu = function () { /* ... */ };
+window.createAdminMenuManually = function () { /* ... */ };
 
 // Restore missing users
-window.restoreUsers = function() {
+window.restoreUsers = function () {
     console.log('=== RESTAURANDO USUÁRIOS ===');
-    
+
     // Check current users
     const currentUsers = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
     console.log('Usuários atuais:', currentUsers.length);
-    
+
     // Create default users if none exist
     const defaultUsers = [
         {
@@ -4470,7 +4685,7 @@ window.restoreUsers = function() {
             lastLogin: null
         }
     ];
-    
+
     // If no users exist, create default ones
     if (currentUsers.length === 0) {
         localStorage.setItem('medFocusUsers', JSON.stringify(defaultUsers));
@@ -4489,23 +4704,23 @@ window.restoreUsers = function() {
             console.log('✅ Usuários já existem, incluindo admin');
         }
     }
-    
+
     // Verify restoration
     const finalUsers = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
     console.log('Usuários finais:', finalUsers.length);
     console.log('Emails dos usuários:', finalUsers.map(u => u.email));
-    
+
     console.log('=== FIM RESTAURAÇÃO ===');
 };
 
 // Funções adicionais para hierarquia
-MedFocusApp.prototype.setupSelectionListeners = function() {
+MedFocusApp.prototype.setupSelectionListeners = function () {
     // Não adicionar event listeners duplicados - usar onclick do HTML
     // Apenas inicializar o contador
     this.updateSelectionCounter();
 };
 
-MedFocusApp.prototype.toggleDeckSelection = function(deckId) {
+MedFocusApp.prototype.toggleDeckSelection = function (deckId) {
     const deckElement = document.querySelector(`[data-deck-id="${deckId}"] .deck-item`);
     if (deckElement) {
         deckElement.classList.toggle('selected');
@@ -4513,13 +4728,13 @@ MedFocusApp.prototype.toggleDeckSelection = function(deckId) {
     }
 };
 
-MedFocusApp.prototype.updateSelectionCounter = function() {
+MedFocusApp.prototype.updateSelectionCounter = function () {
     const selectedCount = document.querySelectorAll('.deck-item.selected').length;
     const counterElement = document.getElementById('selectedCount');
     if (counterElement) {
         counterElement.textContent = `(${selectedCount})`;
     }
-    
+
     const studyBtn = document.getElementById('studySelectedBtn');
     if (studyBtn) {
         if (selectedCount === 0) {
@@ -4532,7 +4747,7 @@ MedFocusApp.prototype.updateSelectionCounter = function() {
     }
 };
 
-MedFocusApp.prototype.showCreateDeckModal = function() {
+MedFocusApp.prototype.showCreateDeckModal = function () {
     // Criar modal dinamicamente
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -4577,10 +4792,10 @@ MedFocusApp.prototype.showCreateDeckModal = function() {
             </form>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.classList.remove('hidden');
-    
+
     // Adicionar event listener para o formulário
     document.getElementById('createDeckForm').addEventListener('submit', (e) => {
         e.preventDefault();
@@ -4588,14 +4803,14 @@ MedFocusApp.prototype.showCreateDeckModal = function() {
     });
 };
 
-MedFocusApp.prototype.closeCreateDeckModal = function() {
+MedFocusApp.prototype.closeCreateDeckModal = function () {
     const modal = document.getElementById('createDeckModal');
     if (modal) {
         modal.remove();
     }
 };
 
-MedFocusApp.prototype.createDeckWithHierarchy = function() {
+MedFocusApp.prototype.createDeckWithHierarchy = function () {
     const name = document.getElementById('deckName').value.trim();
     const category = document.getElementById('deckCategory').value;
     const description = document.getElementById('deckDescription').value.trim();
@@ -4665,7 +4880,7 @@ MedFocusApp.prototype.createDeckWithHierarchy = function() {
 };
 
 // === QUIZ MANAGEMENT ===
-MedFocusApp.prototype.showCreateQuizModal = function() {
+MedFocusApp.prototype.showCreateQuizModal = function () {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.id = 'createQuizModal';
@@ -4714,24 +4929,24 @@ MedFocusApp.prototype.showCreateQuizModal = function() {
             </form>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.classList.remove('hidden');
-    
+
     document.getElementById('createQuizForm').addEventListener('submit', (e) => {
         e.preventDefault();
         this.createQuiz();
     });
 };
 
-MedFocusApp.prototype.closeCreateQuizModal = function() {
+MedFocusApp.prototype.closeCreateQuizModal = function () {
     const modal = document.getElementById('createQuizModal');
     if (modal) {
         modal.remove();
     }
 };
 
-MedFocusApp.prototype.createQuiz = function() {
+MedFocusApp.prototype.createQuiz = function () {
     const title = document.getElementById('quizTitle').value.trim();
     const subject = document.getElementById('quizSubject').value;
     const timeLimit = parseInt(document.getElementById('quizTimeLimit').value);
@@ -4785,10 +5000,10 @@ MedFocusApp.prototype.createQuiz = function() {
     this.showNotification(`Simulado "${title}" criado com sucesso!`, 'success');
 };
 
-MedFocusApp.prototype.editQuiz = function(quizId) {
+MedFocusApp.prototype.editQuiz = function (quizId) {
     const quizzes = JSON.parse(localStorage.getItem('medFocusQuizzes') || '[]');
     const quiz = quizzes.find(q => q.id === quizId);
-    
+
     if (!quiz) {
         this.showNotification('Simulado não encontrado!', 'error');
         return;
@@ -4842,30 +5057,30 @@ MedFocusApp.prototype.editQuiz = function(quizId) {
             </form>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.classList.remove('hidden');
-    
+
     document.getElementById('editQuizForm').addEventListener('submit', (e) => {
         e.preventDefault();
         this.updateQuiz(quizId);
     });
 };
 
-MedFocusApp.prototype.closeEditQuizModal = function() {
+MedFocusApp.prototype.closeEditQuizModal = function () {
     const modal = document.getElementById('editQuizModal');
     if (modal) {
         modal.remove();
     }
 };
 
-MedFocusApp.prototype.formatQuestionsForEdit = function(questions) {
+MedFocusApp.prototype.formatQuestionsForEdit = function (questions) {
     return questions.map(q => {
         return `${q.question} | ${q.options[0]} | ${q.options[1]} | ${q.options[2]} | ${q.options[3]} | ${q.correct} | ${q.explanation || ''}`;
     }).join('\n');
 };
 
-MedFocusApp.prototype.updateQuiz = function(quizId) {
+MedFocusApp.prototype.updateQuiz = function (quizId) {
     const title = document.getElementById('editQuizTitle').value.trim();
     const subject = document.getElementById('editQuizSubject').value;
     const timeLimit = parseInt(document.getElementById('editQuizTimeLimit').value);
@@ -4901,7 +5116,7 @@ MedFocusApp.prototype.updateQuiz = function(quizId) {
 
     const quizzes = JSON.parse(localStorage.getItem('medFocusQuizzes') || '[]');
     const quizIndex = quizzes.findIndex(q => q.id === quizId);
-    
+
     if (quizIndex !== -1) {
         quizzes[quizIndex] = {
             ...quizzes[quizIndex],
@@ -4911,7 +5126,7 @@ MedFocusApp.prototype.updateQuiz = function(quizId) {
             description: description || `Simulado de ${this.getCategoryName(subject)}`,
             questions
         };
-        
+
         localStorage.setItem('medFocusQuizzes', JSON.stringify(quizzes));
         this.closeEditQuizModal();
         this.loadQuizzes();
@@ -4919,7 +5134,7 @@ MedFocusApp.prototype.updateQuiz = function(quizId) {
     }
 };
 
-MedFocusApp.prototype.deleteQuiz = function(quizId) {
+MedFocusApp.prototype.deleteQuiz = function (quizId) {
     if (confirm('Tem certeza que deseja excluir este simulado?')) {
         const quizzes = JSON.parse(localStorage.getItem('medFocusQuizzes') || '[]');
         const filteredQuizzes = quizzes.filter(q => q.id !== quizId);
@@ -4929,7 +5144,7 @@ MedFocusApp.prototype.deleteQuiz = function(quizId) {
     }
 };
 
-MedFocusApp.prototype.importQuiz = function() {
+MedFocusApp.prototype.importQuiz = function () {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.txt,.csv';
@@ -4947,10 +5162,10 @@ MedFocusApp.prototype.importQuiz = function() {
     input.click();
 };
 
-MedFocusApp.prototype.parseImportedQuiz = function(content) {
+MedFocusApp.prototype.parseImportedQuiz = function (content) {
     const lines = content.split('\n').filter(line => line.trim());
     const questions = [];
-    
+
     lines.forEach((line, index) => {
         const parts = line.split('|');
         if (parts.length >= 6) {
@@ -4984,7 +5199,7 @@ MedFocusApp.prototype.parseImportedQuiz = function(content) {
         const quizzes = JSON.parse(localStorage.getItem('medFocusQuizzes') || '[]');
         quizzes.push(quiz);
         localStorage.setItem('medFocusQuizzes', JSON.stringify(quizzes));
-        
+
         this.loadQuizzes();
         this.showNotification(`Simulado importado com sucesso! ${questions.length} questões adicionadas.`, 'success');
     } else {
@@ -4993,7 +5208,7 @@ MedFocusApp.prototype.parseImportedQuiz = function(content) {
 };
 
 // === FLASHCARD EXPORT ===
-MedFocusApp.prototype.exportFlashcards = function() {
+MedFocusApp.prototype.exportFlashcards = function () {
     const decks = JSON.parse(localStorage.getItem('medFocusDecks') || '[]');
     const userDecks = this.currentUser.role === 'admin'
         ? decks
@@ -5040,23 +5255,23 @@ MedFocusApp.prototype.exportFlashcards = function() {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.classList.remove('hidden');
 };
 
-MedFocusApp.prototype.closeExportModal = function() {
+MedFocusApp.prototype.closeExportModal = function () {
     const modal = document.getElementById('exportModal');
     if (modal) {
         modal.remove();
     }
 };
 
-MedFocusApp.prototype.downloadExport = function() {
+MedFocusApp.prototype.downloadExport = function () {
     const selectedDecks = Array.from(document.querySelectorAll('#exportModal input[type="checkbox"]:checked'))
         .map(cb => cb.value);
     const format = document.getElementById('exportFormat').value;
-    
+
     if (selectedDecks.length === 0) {
         this.showNotification('Selecione pelo menos um deck!', 'error');
         return;
@@ -5064,7 +5279,7 @@ MedFocusApp.prototype.downloadExport = function() {
 
     const decks = JSON.parse(localStorage.getItem('medFocusDecks') || '[]');
     const selectedDeckData = decks.filter(d => selectedDecks.includes(d.id));
-    
+
     let content = '';
     let filename = '';
     let mimeType = '';
@@ -5093,10 +5308,10 @@ MedFocusApp.prototype.downloadExport = function() {
 };
 
 // === QUIZ TIME TRACKING ===
-MedFocusApp.prototype.saveQuizTime = function(timeSpentSeconds, quizTitle) {
+MedFocusApp.prototype.saveQuizTime = function (timeSpentSeconds, quizTitle) {
     const today = new Date().toISOString().split('T')[0];
     const stats = JSON.parse(localStorage.getItem('medFocusStats') || '{}');
-    
+
     if (!stats[today]) {
         stats[today] = {
             date: today,
@@ -5109,63 +5324,63 @@ MedFocusApp.prototype.saveQuizTime = function(timeSpentSeconds, quizTitle) {
             quizDetails: []
         };
     }
-    
+
     const dayStats = stats[today];
     dayStats.quizzesTime += timeSpentSeconds;
     dayStats.totalTime = dayStats.flashcardsTime + dayStats.quizzesTime;
     dayStats.quizzesCompleted += 1;
-    
+
     // Salvar detalhes do simulado
     if (!dayStats.quizDetails) {
         dayStats.quizDetails = [];
     }
-    
+
     dayStats.quizDetails.push({
         title: quizTitle,
         timeSpent: timeSpentSeconds,
         completedAt: new Date().toISOString()
     });
-    
+
     localStorage.setItem('medFocusStats', JSON.stringify(stats));
-    
+
     // Atualizar overview se estiver visível
     if (this.updateOverviewStats) {
         this.updateOverviewStats();
     }
-    
+
     console.log(`Tempo de simulado salvo: ${Math.floor(timeSpentSeconds / 60)}:${(timeSpentSeconds % 60).toString().padStart(2, '0')} - ${quizTitle}`);
 };
 
-MedFocusApp.prototype.exportToCSV = function(decks) {
+MedFocusApp.prototype.exportToCSV = function (decks) {
     let csv = 'Deck,Pergunta,Resposta,Explicação\n';
-    
+
     decks.forEach(deck => {
         deck.cards?.forEach(card => {
             csv += `"${deck.name}","${card.question}","${card.answer}","${card.explanation || ''}"\n`;
         });
     });
-    
+
     return csv;
 };
 
-MedFocusApp.prototype.exportToTXT = function(decks) {
+MedFocusApp.prototype.exportToTXT = function (decks) {
     let txt = '';
-    
+
     decks.forEach(deck => {
         txt += `# ${deck.name}\n`;
         txt += `# ${deck.description || ''}\n\n`;
-        
+
         deck.cards?.forEach(card => {
             txt += `${card.question} | ${card.answer} | ${card.explanation || ''}\n`;
         });
-        
+
         txt += '\n---\n\n';
     });
-    
+
     return txt;
 };
 
-MedFocusApp.prototype.downloadFile = function(content, filename, mimeType) {
+MedFocusApp.prototype.downloadFile = function (content, filename, mimeType) {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -5185,4 +5400,3 @@ if (document.readyState === 'loading') {
 } else {
     new MedFocusApp();
 }
-

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
@@ -75,7 +75,7 @@
                         <a href="#" class="nav-link" onclick="showPage('samplesPage')">Amostras</a>
                         <a href="#" class="nav-link" onclick="showPage('pricingPage')">Assinar</a>
                         <a href="#" class="nav-link login-btn" onclick="showPage('loginPage')">Login</a>
-                    </div>
+                    </div> 
                     <div class="user-menu hidden" id="userMenu">
                         <div class="user-avatar" onclick="showAvatarUploadModal()" title="Clique para alterar avatar">
                             <img id="userAvatarImage" src="" alt="Avatar"
@@ -1725,6 +1725,50 @@
     <script type="module" src="./admin/usuarios/embed.js"></script>
     <script src="./js/deck-hierarchy.js"></script>
     
+    <div id="editUserModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Usuário</h3>
+                <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
+            </div>
+            <form id="editUserForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="editUserName" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editUserEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Telefone</label>
+                        <input type="tel" class="form-control" id="editUserPhone">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Plano</label>
+                        <select class="form-control" id="editUserPlan">
+                            <option value="free">Gratuito</option>
+                            <option value="basic">Básico</option>
+                            <option value="premium">Premium</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Função</label>
+                        <select class="form-control" id="editUserRole">
+                            <option value="student">Estudante</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--outline" onclick="closeModal('editUserModal')">Cancelar</button>
+                    <button type="button" class="btn btn--primary" onclick="app.saveUserEdit()">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script>
         // Global functions for user admin modal
         function showCreateUserModal() {
@@ -1948,6 +1992,86 @@
             if (window.userAdmin && typeof window.userAdmin.loadUsers === 'function') {
                 window.userAdmin.loadUsers();
             }
+        }
+    </script>
+    <script>
+        const deckStepConfig = [
+        {
+            deckName: "ALL::Learning::日本語::Expression",
+            againMins: 0.34,
+            hardMins: 6.7,
+            goodMins: 67.32
+        },
+        {
+            deckName: "ALL::Learning::日本語::Jlab's beginner course",
+            againMins: 8.23,
+            hardMins: 19.86,
+            goodMins: 189.69
+        },
+        {
+            deckName: "ALL::Learning::日本語::蓝宝书N1-N5【超值白金版】",
+            againMins: 4.43,
+            hardMins: 28.90,
+            goodMins: 101.04
+        },
+    ]
+
+        debugger;
+
+        let currentConfig = {};
+        // get the name of the card's deck
+        if (deck_name = get_deckname()) {
+            // Arrange the deckParams of sub-decks in front of their parent decks.
+            deckStepConfig.sort(function (a, b) {
+                return -a.deckName.localeCompare(b.deckName);
+            });
+            for (let i = 0; i < deckStepConfig.length; i++) {
+                if (deck_name.startsWith(deckStepConfig[i]["deckName"])) {
+                    currentConfig = deckStepConfig[i];
+                    break;
+                }
+            }
+        }
+
+        if (Object.keys(currentConfig).length > 0 && is_new()) {
+            const mapping = [
+                { key: "again", mins: "againMins" },
+                { key: "hard", mins: "hardMins" },
+                { key: "good", mins: "goodMins" }
+            ];
+            mapping.forEach(({ key, mins }) => {
+                const state = states[key]?.normal?.learning;
+                if (state) {
+                    state.scheduledSecs = mins_to_secs(currentConfig[mins]);
+                }
+            });
+        }
+
+        function get_deckname() {
+            if (typeof ctx !== 'undefined' && ctx.deckName) {
+                return ctx.deckName;
+            } else if (document.getElementById("deck") !== null && document.getElementById("deck").getAttribute("deck_name")) {
+                return document.getElementById("deck").getAttribute("deck_name");
+            } else {
+                return null;
+            }
+        }
+
+        function is_new() {
+            if (states.current.normal?.new !== undefined && states.current.normal?.new !== null) {
+                return true;
+            }
+            if (
+                states.current.filtered?.rescheduling?.originalState !== undefined &&
+                Object.hasOwn(states.current.filtered?.rescheduling?.originalState, 'new')
+            ) {
+                return true;
+            }
+            return false;
+        }
+
+        function mins_to_secs(mins) {
+            return Math.round(mins * 60);
         }
     </script>
 </body>

@@ -1,4 +1,4 @@
-﻿// MedFocus Cards - Statistics Module
+﻿﻿// MedFocus Cards - Statistics Module
 // Sistema completo de estatísticas com Chart.js e análise avançada
 
 const Stats = {
@@ -130,11 +130,11 @@ const Stats = {
                 datasets: [{
                     label: 'Precisão %',
                     data: data.accuracy,
-                    borderColor: 'rgba(18, 78, 102, 1)',
-                    backgroundColor: 'rgba(18, 78, 102, 0.1)',
+                    borderColor: 'rgba(75, 163, 227, 1)',
+                    backgroundColor: 'rgba(75, 163, 227, 0.1)',
                     tension: 0.4,
                     fill: true,
-                    pointBackgroundColor: 'rgba(18, 78, 102, 1)',
+                    pointBackgroundColor: 'rgba(75, 163, 227, 1)',
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2,
                     pointRadius: 4
@@ -178,7 +178,7 @@ const Stats = {
                     data: data.values,
                     backgroundColor: [
                         'rgba(46, 196, 182, 0.8)',
-                        'rgba(18, 78, 102, 0.8)',
+                        'rgba(75, 163, 227, 0.8)',
                         'rgba(39, 174, 96, 0.8)',
                         'rgba(255, 140, 0, 0.8)',
                         'rgba(230, 57, 70, 0.8)'
@@ -565,9 +565,29 @@ const Stats = {
 
         // Obter dados de distribuição de tempo
         getTimeDistributionData: () => {
-            const periods = ['Manhã (6-12h)', 'Tarde (12-18h)', 'Noite (18-24h)', 'Madrugada (0-6h)'];
-            const values = [25, 35, 30, 10]; // Dados simulados - implementar coleta real
+            const userId = Stats.currentUser;
+            const decks = Storage.getUserDecks(userId);
+            const periods = ['Madrugada (0-6h)', 'Manhã (6-12h)', 'Tarde (12-18h)', 'Noite (18-24h)'];
+            const values = [0, 0, 0, 0];
             
+            decks.forEach(deck => {
+                if(deck.cards) {
+                    deck.cards.forEach(card => {
+                        if (card.reviews) {
+                            card.reviews.forEach(review => {
+                                const hour = new Date(review.date || review.timestamp).getHours();
+                                if (!isNaN(hour)) {
+                                    if (hour >= 0 && hour < 6) values[0]++;
+                                    else if (hour >= 6 && hour < 12) values[1]++;
+                                    else if (hour >= 12 && hour < 18) values[2]++;
+                                    else values[3]++;
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+
             return { labels: periods, values };
         },
 
@@ -925,15 +945,29 @@ const Stats = {
             if (!ctx) return null;
 
             const userId = Stats.currentUser;
-            const data = Stats.timer.getStudyTimeStats(userId, 7); // Últimos 7 dias
+            const userStats = Storage.getUserStats(userId);
+            
+            const labels = [];
+            const data = [];
+            
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateKey = d.toISOString().split('T')[0];
+                labels.push(d.toLocaleDateString('pt-BR', { weekday: 'short' }));
+                
+                const dayStats = userStats[dateKey];
+                const minutes = dayStats ? Math.round((dayStats.timeSpent || 0) / 60) : 0;
+                data.push(minutes);
+            }
 
             return new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                    labels: labels,
                     datasets: [{
                         label: 'Tempo de Estudo (minutos)',
-                        data: [0, 0, 0, 0, 0, 0, 0], // Placeholder - seria calculado com dados reais
+                        data: data,
                         borderColor: 'rgba(46, 196, 182, 1)',
                         backgroundColor: 'rgba(46, 196, 182, 0.1)',
                         borderWidth: 2,
@@ -964,7 +998,3 @@ const Stats = {
         }
     }
 };
-
-
-
-

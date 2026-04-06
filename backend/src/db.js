@@ -6,12 +6,15 @@ dotenv.config();
 
 const { Pool } = pg;
 
-const pool = new Pool({
+if (!process.env.DATABASE_URL) {
+  console.warn('⚠️ AVISO: Variável DATABASE_URL não encontrada no arquivo .env!');
+  console.warn('⚠️ O backend tentará conectar ao banco PostgreSQL local (se houver).');
+}
+
+const pool = new Pool(process.env.DATABASE_URL ? {
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
+  ssl: { rejectUnauthorized: false }
+} : {});
 
 export default pool;
 

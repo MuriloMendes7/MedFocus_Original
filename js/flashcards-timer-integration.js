@@ -44,9 +44,12 @@ const FlashcardsTimerIntegration = {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                     const studyPage = document.getElementById('studyModePage');
-                    if (studyPage && !studyPage.classList.contains('hidden')) {
-                        // Página de estudo foi mostrada
-                        setTimeout(() => this.autoStartTimer(), 100);
+                    if (studyPage) {
+                        if (studyPage.classList.contains('active')) {
+                            setTimeout(() => this.autoStartTimer(), 100);
+                        } else if (typeof StudyTimer !== 'undefined' && StudyTimer.state.isRunning) {
+                            StudyTimer.stopTimer();
+                        }
                     }
                 }
             });
@@ -86,11 +89,7 @@ const FlashcardsTimerIntegration = {
 
     // Manipular início de estudo
     handleStudyStart(event) {
-        // Verificar se estamos na página de estudo de flashcards
-        const studyPage = document.getElementById('studyModePage');
-        if (!studyPage || studyPage.classList.contains('hidden')) {
-            return; // Só funciona na página de estudo
-        }
+        if (window.app && window.app.currentPage !== 'studyModePage') return;
 
         const deckElement = event.target.closest('[data-deck-id]');
         const deckId = deckElement ? deckElement.getAttribute('data-deck-id') : 'unknown';
@@ -128,8 +127,7 @@ const FlashcardsTimerIntegration = {
 
     // Iniciar cronômetro automaticamente quando entrar na página de estudo
     autoStartTimer() {
-        const studyPage = document.getElementById('studyModePage');
-        if (studyPage && !studyPage.classList.contains('hidden')) {
+        if (window.app && window.app.currentPage === 'studyModePage') {
             // Verificar se há um deck sendo estudado
             const deckTitle = document.getElementById('studyDeckTitle');
             if (deckTitle && deckTitle.textContent !== 'Anatomia Humana') {
