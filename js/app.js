@@ -2907,12 +2907,14 @@ class MedFocusApp {
         // Auto-fetch from backend to keep sync
         if (!skipFetch && this.backendUrl && !this._isFetchingUsers) {
             this._isFetchingUsers = true;
-            this.fetchUsersFromBackend().then(changed => {
-                this._isFetchingUsers = false;
-                if (changed && document.getElementById('usersTableBody')) {
-                    this.loadUsersTable(true);
-                }
-            });
+            if (typeof this.fetchUsersFromBackend === 'function') {
+                this.fetchUsersFromBackend().then(changed => {
+                    this._isFetchingUsers = false;
+                    if (changed && document.getElementById('usersTableBody')) {
+                        this.loadUsersTable(true);
+                    }
+                }).catch(e => { this._isFetchingUsers = false; console.error(e); });
+            }
         }
     }
 
