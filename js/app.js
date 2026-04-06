@@ -629,34 +629,103 @@ class MedFocusApp {
 
         const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
 
-        if (users.length === 0) {
-            console.log('ℹ️ Nenhum usuário no localStorage para sincronizar');
-            return;
-        }
+        if (users.length > 0) {
+            console.log(`📊 Encontrados ${users.length} usuário(s) para sincronizar (Push)`);
 
-        console.log(`📊 Encontrados ${users.length} usuário(s) para sincronizar`);
+            let successCount = 0;
+            let errorCount = 0;
 
-        let successCount = 0;
-        let errorCount = 0;
-
-        for (const user of users) {
-            try {
-                const result = await this.syncPatientToBackend(user);
-                if (result && result.success) {
-                    successCount++;
-                } else {
+            for (const user of users) {
+                try {
+                    const result = await this.syncPatientToBackend(user);
+                    if (result && result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                    // Pequeno delay para não sobrecarregar o servidor
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    console.error(`Erro ao sincronizar usuário ${user.email}:`, error);
                     errorCount++;
                 }
-                // Pequeno delay para não sobrecarregar o servidor
-                await new Promise(resolve => setTimeout(resolve, 100));
-            } catch (error) {
-                console.error(`Erro ao sincronizar usuário ${user.email}:`, error);
-                errorCount++;
             }
+            console.log(`✅ Sincronização Push concluída: ${successCount} sucesso, ${errorCount} erros`);
+        } else {
+            console.log('ℹ️ Nenhum usuário no localStorage para push.');
         }
 
-        console.log(`✅ Sincronização concluída: ${successCount} sucesso, ${errorCount} erros`);
+        // AGORA BUSCA AS ATUALIZAÇÕES E NOVOS USUÁRIOS (Pull)
+        if (typeof this.fetchUsersFromBackend === 'function') {
+            console.log('🔄 Buscando usuários do servidor (Pull)...');
+            const changed = await this.fetchUsersFromBackend();
+            if (changed) {
+                console.log('✅ Novos dados recebidos do servidor.');
+                if (this.currentDashboardView === 'admin') {
+                    this.loadUsersTable(true);
+                }
+            } else {
+                console.log('✅ Banco de dados local já está atualizado com o servidor.');
+            }
+        }
+    }
 
+    async fetchUsersFromBackend() {
+        if (!this.backendUrl) return false;
+        try {
+            const response = await fetch(`${this.backendUrl}/api/patients`);
+            if (response.ok) {
+                const result = await response.json();
+                const backendUsers = result.data || [];
+                let localUsers = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
+                let changed = false;
+
+                backendUsers.forEach(bUser => {
+                    if (!bUser.email) return;
+                    const existingIdx = localUsers.findIndex(u => u.email.toLowerCase() === bUser.email.toLowerCase());
+                    
+                    const isActiveVal = bUser.is_active !== undefined ? bUser.is_active : bUser.isActive;
+                    const isUserActive = isActiveVal === 1 || isActiveVal === true || isActiveVal === 'true';
+
+                    const userObj = {
+                        id: bUser.user_id || bUser.userId || bUser.id || 'user_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                        name: bUser.name || 'Sem Nome',
+                        email: bUser.email,
+                        phone: bUser.phone || '',
+                        plan: bUser.plan || 'free',
+                        role: bUser.role || 'student',
+                        isActive: isUserActive,
+                        created: bUser.created_at || bUser.created || new Date().toISOString(),
+                        lastLogin: bUser.last_login || bUser.lastLogin || null
+                    };
+
+                    if (existingIdx >= 0) {
+                        const existing = localUsers[existingIdx];
+                        const existingIsActive = existing.isActive === true || existing.isActive === 'true';
+
+                        if (existing.name !== userObj.name || 
+                            existing.plan !== userObj.plan || 
+                            existing.role !== userObj.role ||
+                            existing.phone !== userObj.phone ||
+                            existingIsActive !== userObj.isActive) {
+                            localUsers[existingIdx] = { ...existing, ...userObj, id: existing.id };
+                            changed = true;
+                        }
+                    } else {
+                        localUsers.push(userObj);
+                        changed = true;
+                    }
+                });
+
+                if (changed) {
+                    localStorage.setItem('medFocusUsers', JSON.stringify(localUsers));
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao buscar usuários do backend:', error);
+        }
+        return false;
     }
 
     // Sincronizar flashcards do usuário com o backend
