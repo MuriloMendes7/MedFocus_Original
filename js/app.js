@@ -2838,7 +2838,7 @@ class MedFocusApp {
         if (monthlyRevenueEl) monthlyRevenueEl.textContent = `R$ ${monthlyRevenue.toFixed(2)}`;
     }
 
-    loadUsersTable() {
+    loadUsersTable(skipFetch = false) {
         const users = JSON.parse(localStorage.getItem('medFocusUsers') || '[]');
         const tableBody = document.getElementById('usersTableBody');
         if (!tableBody) return;
@@ -2903,6 +2903,17 @@ class MedFocusApp {
         tableBody.innerHTML = html;
         this.updateUsersCount(sortedUsers.length);
         this.filteredUsers = sortedUsers; // Armazenar para filtros
+
+        // Auto-fetch from backend to keep sync
+        if (!skipFetch && this.backendUrl && !this._isFetchingUsers) {
+            this._isFetchingUsers = true;
+            this.fetchUsersFromBackend().then(changed => {
+                this._isFetchingUsers = false;
+                if (changed && document.getElementById('usersTableBody')) {
+                    this.loadUsersTable(true);
+                }
+            });
+        }
     }
 
     updateUsersCount(count) {
