@@ -37,17 +37,19 @@ if (!raw.DATABASE_URL) {
   console.warn('⚠️ AVISO: DATABASE_URL não está configurada nas variáveis de ambiente!');
 }
 
+const DEFAULT_NEON_AUTH_URL =
+  'https://ep-fancy-pond-acs7t66a.neonauth.sa-east-1.aws.neon.tech/neondb/auth';
+
 let neonAuthOrigin = null;
 let neonAuthJwksUrl = null;
-if (raw.NEON_AUTH_URL) {
+const authUrl = (raw.NEON_AUTH_URL || DEFAULT_NEON_AUTH_URL).trim();
+if (authUrl) {
   try {
-    neonAuthOrigin = new URL(raw.NEON_AUTH_URL).origin;
-    neonAuthJwksUrl = `${raw.NEON_AUTH_URL.replace(/\/$/, '')}/.well-known/jwks.json`;
+    neonAuthOrigin = new URL(authUrl).origin;
+    neonAuthJwksUrl = `${authUrl.replace(/\/$/, '')}/.well-known/jwks.json`;
   } catch {
-    console.warn('⚠️ AVISO: NEON_AUTH_URL inválida:', raw.NEON_AUTH_URL);
+    console.warn('⚠️ AVISO: NEON_AUTH_URL inválida:', authUrl);
   }
-} else {
-  console.warn('⚠️ AVISO: NEON_AUTH_URL ainda não foi configurada nas variáveis de ambiente.');
 }
 
 export const env = {

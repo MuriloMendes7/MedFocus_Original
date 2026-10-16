@@ -123,7 +123,7 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async ({ email, password }) => {
     if (!authClient) {
-      throw new Error('Defina VITE_NEON_AUTH_URL no arquivo frontend/.env.');
+      throw new Error('Serviço de autenticação indisponível no momento. Tente novamente.');
     }
     clearTokenCache();
     localStorage.removeItem('medfocus_demo_token');
@@ -141,7 +141,7 @@ export const AuthProvider = ({ children }) => {
 
   const signUp = async ({ name, email, password, phone }) => {
     if (!authClient) {
-      throw new Error('Defina VITE_NEON_AUTH_URL no arquivo frontend/.env.');
+      throw new Error('Serviço de autenticação indisponível no momento. Tente novamente.');
     }
     clearTokenCache();
     localStorage.removeItem('medfocus_demo_token');

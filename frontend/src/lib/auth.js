@@ -1,6 +1,11 @@
 import { createAuthClient } from '@neondatabase/neon-js/auth';
 
-const neonAuthUrl = import.meta.env.VITE_NEON_AUTH_URL || '';
+const DEFAULT_NEON_AUTH_URL =
+  'https://ep-fancy-pond-acs7t66a.neonauth.sa-east-1.aws.neon.tech/neondb/auth';
+
+const neonAuthUrl = (
+  import.meta.env.VITE_NEON_AUTH_URL || DEFAULT_NEON_AUTH_URL
+).trim();
 
 export const isNeonAuthConfigured = Boolean(neonAuthUrl);
 
