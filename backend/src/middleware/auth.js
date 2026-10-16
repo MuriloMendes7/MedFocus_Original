@@ -1,15 +1,22 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { env } from '../config/env.js';
 import { ensureProfile } from '../services/profiles.js';
-import { forbidden, unauthorized } from '../utils/http.js';
+import { forbidden, HttpError, unauthorized } from '../utils/http.js';
 
-// jose faz cache das chaves e busca novamente quando aparece um `kid` desconhecido.
-const JWKS = createRemoteJWKSet(new URL(env.neonAuthJwksUrl), {
-  cooldownDuration: 30_000,
-  cacheMaxAge: 10 * 60_000,
-});
+const JWKS = env.neonAuthJwksUrl
+  ? createRemoteJWKSet(new URL(env.neonAuthJwksUrl), {
+      cooldownDuration: 30_000,
+      cacheMaxAge: 10 * 60_000,
+    })
+  : null;
 
 async function verifyToken(token) {
+  if (!JWKS || !env.neonAuthOrigin) {
+    throw new HttpError(
+      503,
+      'NEON_AUTH_URL não está configurada no servidor (Render Environment Variables).',
+    );
+  }
   const { payload } = await jwtVerify(token, JWKS, {
     issuer: env.neonAuthOrigin,
     audience: env.neonAuthOrigin,
@@ -20,6 +27,13 @@ async function verifyToken(token) {
 /** Exige um JWT válido do Neon Auth no header `Authorization: Bearer <token>`. */
 export const requireAuth = async (req, _res, next) => {
   try {
+    if (!JWKS) {
+      throw new HttpError(
+        503,
+        'Configure a variável NEON_AUTH_URL no painel do Render para habilitar a autenticação.',
+      );
+    }
+
     const header = req.headers.authorization ?? '';
     const [scheme, token] = header.split(' ');
     if (scheme !== 'Bearer' || !token) throw unauthorized();
@@ -27,7 +41,8 @@ export const requireAuth = async (req, _res, next) => {
     let claims;
     try {
       claims = await verifyToken(token);
-    } catch {
+    } catch (err) {
+      if (err instanceof HttpError) throw err;
       throw unauthorized('Sessão inválida ou expirada. Faça login novamente.');
     }
 

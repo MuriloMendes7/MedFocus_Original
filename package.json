@@ -2,16 +2,23 @@
   "name": "medfocus",
   "version": "2.0.0",
   "private": true,
+  "type": "module",
   "description": "Plataforma de estudos médicos com flashcards SM-2 e simulados cronometrados.",
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
+  "main": "backend/src/server.js",
   "scripts": {
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
-    "build": "npm --prefix frontend run build",
-    "start": "npm --prefix backend run start",
-    "db:migrate": "npm --prefix backend run db:migrate"
+    "build": "npm --prefix frontend install --legacy-peer-deps && npm --prefix frontend run build",
+    "start": "node backend/src/server.js",
+    "db:migrate": "node backend/src/db/migrate.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.2",
+    "express": "^4.21.2",
+    "jose": "^6.1.0",
+    "pg": "^8.20.0",
+    "zod": "^3.24.2"
   }
 }

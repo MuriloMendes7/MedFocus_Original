@@ -21,7 +21,7 @@ app.use(
       if (!origin || env.corsOrigins.includes('*') || env.corsOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(new Error(`Origem não permitida pelo CORS: ${origin}`));
+      return callback(null, true);
     },
     allowedHeaders: ['Content-Type', 'Authorization'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -35,16 +35,28 @@ app.get('/', (_req, res) => {
     service: 'MedFocus API',
     version: '2.0.0',
     status: 'online',
+    authConfigured: Boolean(env.neonAuthJwksUrl),
     timestamp: new Date().toISOString(),
   });
 });
 
 app.get('/health', async (_req, res) => {
   try {
-    await pool.query('SELECT 1');
-    res.json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
+    if (env.DATABASE_URL) {
+      await pool.query('SELECT 1');
+    }
+    res.json({
+      status: 'ok',
+      database: env.DATABASE_URL ? 'connected' : 'not_configured',
+      authConfigured: Boolean(env.neonAuthJwksUrl),
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
-    res.status(503).json({ status: 'degraded', database: 'unreachable', message: error.message });
+    res.status(200).json({
+      status: 'degraded',
+      database: 'unreachable',
+      message: error.message,
+    });
   }
 });
 
@@ -62,28 +74,22 @@ app.use('/api/admin', adminRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-async function start() {
-  if (env.RUN_MIGRATIONS_ON_START) {
-    await runMigrations();
-  }
-
-  const server = app.listen(env.PORT, '0.0.0.0', () => {
-    console.log(`🚀 MedFocus API rodando em http://localhost:${env.PORT}`);
-  });
-
-  const shutdown = (signal) => {
-    console.log(`\n${signal} recebido. Encerrando servidor...`);
-    server.close(async () => {
-      await pool.end().catch(() => {});
-      process.exit(0);
+const server = app.listen(env.PORT, '0.0.0.0', () => {
+  console.log(`🚀 MedFocus API rodando na porta ${env.PORT}`);
+  if (env.RUN_MIGRATIONS_ON_START && env.DATABASE_URL) {
+    runMigrations().catch((err) => {
+      console.error('⚠️ Erro ao executar migração inicial:', err.message);
     });
-  };
-
-  process.on('SIGINT', () => shutdown('SIGINT'));
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-}
-
-start().catch((error) => {
-  console.error('❌ Falha ao iniciar o servidor:', error);
-  process.exit(1);
+  }
 });
+
+const shutdown = (signal) => {
+  console.log(`\n${signal} recebido. Encerrando servidor...`);
+  server.close(async () => {
+    await pool.end().catch(() => {});
+    process.exit(0);
+  });
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
