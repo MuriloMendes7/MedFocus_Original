@@ -3,12 +3,77 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+  :root,
+  html.light {
+    color-scheme: light;
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+
+  html.dark {
+    color-scheme: dark;
+    background-color: #020617;
+    color: #f8fafc;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100;
+    background-color: inherit;
+    color: inherit;
+    @apply font-sans antialiased transition-colors duration-200;
+  }
+
+  /* Garante contraste explícito em todos os campos de formulário nos dois temas */
+  input,
+  select,
+  textarea {
+    color: #0f172a;
+  }
+
+  html.dark input,
+  html.dark select,
+  html.dark textarea {
+    color: #f8fafc;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+  }
+
+  html.dark input::placeholder,
+  html.dark textarea::placeholder {
+    color: #64748b;
+  }
+
+  /* Evita texto branco em fundo branco nos menus <select>/<option> no Windows */
+  select option {
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+
+  html.dark select option {
+    background-color: #0f172a;
+    color: #f8fafc;
+  }
+
+  /* Corrige o fundo e a cor do texto no autopreenchimento (autofill) do navegador */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #0f172a;
+    -webkit-box-shadow: 0 0 0px 1000px #ffffff inset;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  html.dark input:-webkit-autofill,
+  html.dark input:-webkit-autofill:hover,
+  html.dark input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #f8fafc;
+    -webkit-box-shadow: 0 0 0px 1000px #1e293b inset;
   }
 }
 
-/* Utilitários 3D para o flip do flashcard (não existem por padrão no Tailwind) */
+/* Utilitários 3D para o flip do flashcard */
 .perspective-1000 {
   perspective: 1000px;
 }
