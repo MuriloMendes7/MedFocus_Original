@@ -10,6 +10,15 @@ api.interceptors.request.use(async (config) => {
   const token = await getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    if (token === 'demo-token') {
+      try {
+        const stored = localStorage.getItem('medfocus_demo_user');
+        if (stored) {
+          const u = JSON.parse(stored);
+          if (u.role) config.headers['x-demo-role'] = u.role;
+        }
+      } catch {}
+    }
   }
   return config;
 });

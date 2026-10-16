@@ -8,25 +8,40 @@ import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import adminRouter from './routes/admin.js';
 import decksRouter from './routes/decks.js';
 import meRouter from './routes/me.js';
+import patientsRouter from './routes/patients.js';
 import quizzesRouter from './routes/quizzes.js';
 import statsRouter from './routes/stats.js';
+
+import { securityHeaders, createRateLimiter } from './middleware/security.js';
 
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
+// Aplica cabeçalhos de segurança HTTP (OWASP)
+app.use(securityHeaders);
+
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || env.corsOrigins.includes('*') || env.corsOrigins.includes(origin)) {
+      if (!origin || !env.isProduction) return callback(null, true);
+      if (env.corsOrigins.includes('*') || env.corsOrigins.includes(origin)) {
         return callback(null, true);
       }
       return callback(null, true);
     },
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   }),
 );
+app.options('*', cors());
+
+// Rate Limiting para proteção contra DoS e abuso de chamadas
+const apiLimiter = createRateLimiter({ windowMs: 60 * 1000, maxRequests: 240 });
+const adminLimiter = createRateLimiter({ windowMs: 60 * 1000, maxRequests: 60 });
+
+app.use('/api', apiLimiter);
+app.use('/api/admin', adminLimiter);
 
 app.use(express.json({ limit: '5mb' }));
 
@@ -70,6 +85,7 @@ app.use('/api/flashcards', decksRouter);
 app.use('/api/quizzes', quizzesRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/patients', patientsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

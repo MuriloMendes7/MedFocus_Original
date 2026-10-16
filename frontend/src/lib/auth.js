@@ -32,6 +32,9 @@ export function clearTokenCache() {
  * Obtém um JWT válido do Neon Auth (com cache até 30s antes de expirar).
  */
 export async function getAccessToken(forceRefresh = false) {
+  const demoToken = localStorage.getItem('medfocus_demo_token');
+  if (demoToken) return demoToken;
+
   if (!authClient) return null;
   if (!forceRefresh && cachedToken && Date.now() < cachedTokenExp - 30_000) {
     return cachedToken;

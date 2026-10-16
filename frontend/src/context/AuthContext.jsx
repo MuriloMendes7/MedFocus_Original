@@ -42,6 +42,30 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const refreshSession = useCallback(async () => {
+    const demoToken = localStorage.getItem('medfocus_demo_token');
+    if (demoToken) {
+      try {
+        const stored = localStorage.getItem('medfocus_demo_user');
+        const demoUser = stored ? JSON.parse(stored) : null;
+        if (demoUser) {
+          setUser(demoUser);
+          setPlanDetails({
+            id: 'premium',
+            name: 'Premium (Demonstração)',
+            price: '49,90',
+            description: 'Acesso total aos baralhos e simulados.',
+            limits: { ownCards: null, monthlyQuizzes: null },
+          });
+        }
+        await loadBackendProfile();
+      } catch {
+        // Usa perfil em cache local se backend não responder
+      } finally {
+        setLoading(false);
+      }
+      return null;
+    }
+
     if (!authClient) {
       setLoading(false);
       return null;
@@ -69,11 +93,41 @@ export const AuthProvider = ({ children }) => {
     refreshSession();
   }, [refreshSession]);
 
+  const loginAsDemo = async (role = 'student') => {
+    const demoUser = {
+      id: 'demo-user-123',
+      name: role === 'admin' ? 'Coordenação MedFocus' : 'Aluno Demonstrativo',
+      email: role === 'admin' ? 'admin@medfocus.com' : 'aluno@medfocus.com',
+      phone: null,
+      role,
+      plan: 'premium',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+    localStorage.setItem('medfocus_demo_token', 'demo-token');
+    localStorage.setItem('medfocus_demo_user', JSON.stringify(demoUser));
+    setUser(demoUser);
+    setPlanDetails({
+      id: 'premium',
+      name: 'Premium',
+      price: '49,90',
+      description: 'Acesso completo a todos os recursos.',
+      limits: { ownCards: null, monthlyQuizzes: null },
+    });
+    setLoading(false);
+    try {
+      await loadBackendProfile();
+    } catch {}
+    return demoUser;
+  };
+
   const signIn = async ({ email, password }) => {
     if (!authClient) {
       throw new Error('Defina VITE_NEON_AUTH_URL no arquivo frontend/.env.');
     }
     clearTokenCache();
+    localStorage.removeItem('medfocus_demo_token');
+    localStorage.removeItem('medfocus_demo_user');
     const { error } = await authClient.signIn.email({ email, password });
     if (error) {
       throw new Error(
@@ -90,6 +144,8 @@ export const AuthProvider = ({ children }) => {
       throw new Error('Defina VITE_NEON_AUTH_URL no arquivo frontend/.env.');
     }
     clearTokenCache();
+    localStorage.removeItem('medfocus_demo_token');
+    localStorage.removeItem('medfocus_demo_user');
     if (phone) {
       sessionStorage.setItem(PENDING_REGISTRATION_KEY, JSON.stringify({ name, phone }));
     }
@@ -104,6 +160,8 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
+      localStorage.removeItem('medfocus_demo_token');
+      localStorage.removeItem('medfocus_demo_user');
       await authClient?.signOut();
     } finally {
       clearTokenCache();
@@ -114,9 +172,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateProfile = async (patch) => {
-    const { data } = await api.patch('/me', patch);
-    setUser(data.data);
-    return data.data;
+    try {
+      const { data } = await api.patch('/me', patch);
+      setUser(data.data);
+      return data.data;
+    } catch {
+      // Atualiza localmente se em modo demo
+      setUser((prev) => {
+        const next = { ...prev, ...patch };
+        localStorage.setItem('medfocus_demo_user', JSON.stringify(next));
+        return next;
+      });
+      return patch;
+    }
   };
 
   return (
@@ -130,6 +198,7 @@ export const AuthProvider = ({ children }) => {
         signIn,
         signUp,
         signOut,
+        loginAsDemo,
         refreshSession,
         updateProfile,
       }}

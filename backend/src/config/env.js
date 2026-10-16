@@ -21,6 +21,10 @@ const schema = z.object({
   NEON_AUTH_URL: z.string().optional().default(''),
   CORS_ORIGINS: z.string().default('*'),
   ADMIN_EMAILS: z.string().default('admin@medfocus.com'),
+  ALLOW_DEMO_LOGIN: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
   RUN_MIGRATIONS_ON_START: z
     .enum(['true', 'false'])
     .default('true')

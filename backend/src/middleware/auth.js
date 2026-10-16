@@ -24,18 +24,89 @@ async function verifyToken(token) {
   return payload;
 }
 
+const DEMO_STUDENT = {
+  id: 'demo-user-123',
+  email: 'aluno@medfocus.com',
+  name: 'Aluno Demonstrativo',
+  phone: null,
+  plan: 'premium',
+  role: 'student',
+  isActive: true,
+  createdAt: new Date(),
+};
+
+/** Permite autenticação opcional (para rotas públicas de decks e quizzes). */
+export const optionalAuth = async (req, _res, next) => {
+  try {
+    const header = req.headers.authorization ?? '';
+    const [scheme, token] = header.split(' ');
+    if (scheme !== 'Bearer' || !token) {
+      req.user = null;
+      req.isAdmin = false;
+      return next();
+    }
+
+    if (token === 'demo-token' || token.startsWith('demo-')) {
+      if (env.isProduction && !env.ALLOW_DEMO_LOGIN) {
+        req.user = null;
+        req.isAdmin = false;
+        return next();
+      }
+      // Em produção, nunca concede papel de admin via cabeçalho demo arbitrário
+      const role =
+        !env.isProduction && req.headers['x-demo-role'] === 'admin' ? 'admin' : 'student';
+      req.user = { ...DEMO_STUDENT, role };
+      req.isAdmin = role === 'admin';
+      return next();
+    }
+
+    if (!JWKS) {
+      req.user = null;
+      req.isAdmin = false;
+      return next();
+    }
+
+    const claims = await verifyToken(token);
+    const profile = await ensureProfile(claims);
+    req.user = profile;
+    req.isAdmin = profile.role === 'admin';
+    next();
+  } catch {
+    req.user = null;
+    req.isAdmin = false;
+    next();
+  }
+};
+
 /** Exige um JWT válido do Neon Auth no header `Authorization: Bearer <token>`. */
 export const requireAuth = async (req, _res, next) => {
   try {
+    const header = req.headers.authorization ?? '';
+    const [scheme, token] = header.split(' ');
+
+    if (token === 'demo-token' || token?.startsWith('demo-')) {
+      if (env.isProduction && !env.ALLOW_DEMO_LOGIN) {
+        throw unauthorized('Modo de demonstração desativado em produção.');
+      }
+      const role =
+        !env.isProduction && req.headers['x-demo-role'] === 'admin' ? 'admin' : 'student';
+      req.user = { ...DEMO_STUDENT, role };
+      req.isAdmin = role === 'admin';
+      return next();
+    }
+
     if (!JWKS) {
+      if (!env.isProduction) {
+        req.user = { ...DEMO_STUDENT, role: 'admin' };
+        req.isAdmin = true;
+        return next();
+      }
       throw new HttpError(
         503,
         'Configure a variável NEON_AUTH_URL no painel do Render para habilitar a autenticação.',
       );
     }
 
-    const header = req.headers.authorization ?? '';
-    const [scheme, token] = header.split(' ');
     if (scheme !== 'Bearer' || !token) throw unauthorized();
 
     let claims;
