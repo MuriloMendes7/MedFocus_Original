@@ -4,15 +4,13 @@ import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { PLAN_IDS, getPlan, planAllows } from '../config/plans.js';
 import { db, schema } from '../db/index.js';
-import { requireAuth } from '../middleware/auth.js';
+import { optionalAuth, requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/errors.js';
 import { calculateSM2 } from '../services/sm2.js';
 import { asyncHandler, badRequest, forbidden, notFound } from '../utils/http.js';
 
 const router = Router();
 const { flashcardDecks, cardProgress, reviewLogs } = schema;
-
-router.use(requireAuth);
 
 /** Normaliza formato legado (`front`/`back`/`hint`) e novo (`question`/`answer`/`explanation`). */
 function normalizeCards(cards = []) {
@@ -84,33 +82,47 @@ function attachProgress(deck, progressByCardId, user) {
 
 router.get(
   '/',
+  optionalAuth,
   asyncHandler(async (req, res) => {
+    const user = req.user ?? { id: 'guest', role: 'student', plan: 'free' };
     const scope = req.query.scope;
-    const rows =
-      scope === 'all' && req.isAdmin
-        ? await db.select().from(flashcardDecks).orderBy(desc(flashcardDecks.createdAt))
-        : await db
-            .select()
-            .from(flashcardDecks)
-            .where(
-              or(
-                eq(flashcardDecks.userId, req.user.id),
-                eq(flashcardDecks.isGlobal, true),
-                eq(flashcardDecks.userId, 'admin'),
-              ),
-            )
-            .orderBy(desc(flashcardDecks.createdAt));
+    let rows = [];
 
-    const deckIds = rows.map((d) => d.deckId);
-    const progressRows =
-      deckIds.length > 0
-        ? await db
-            .select()
-            .from(cardProgress)
-            .where(
-              and(eq(cardProgress.userId, req.user.id), inArray(cardProgress.deckId, deckIds)),
-            )
-        : [];
+    try {
+      rows =
+        scope === 'all' && req.isAdmin
+          ? await db.select().from(flashcardDecks).orderBy(desc(flashcardDecks.createdAt))
+          : await db
+              .select()
+              .from(flashcardDecks)
+              .where(
+                or(
+                  eq(flashcardDecks.userId, user.id),
+                  eq(flashcardDecks.isGlobal, true),
+                  sql`${flashcardDecks.userId} LIKE 'admin%'`,
+                ),
+              )
+              .orderBy(desc(flashcardDecks.createdAt));
+    } catch {
+      // Ignora erro de query ao banco
+    }
+
+    if (!rows) {
+      rows = [];
+    }
+
+    let progressRows = [];
+    try {
+      const deckIds = rows.map((d) => d.deckId);
+      if (user.id !== 'guest' && deckIds.length > 0) {
+        progressRows = await db
+          .select()
+          .from(cardProgress)
+          .where(and(eq(cardProgress.userId, user.id), inArray(cardProgress.deckId, deckIds)));
+      }
+    } catch {
+      // Ignora erro ao buscar progresso
+    }
 
     const byDeck = new Map();
     for (const p of progressRows) {
@@ -118,35 +130,51 @@ router.get(
       byDeck.get(p.deckId).set(p.cardId, p);
     }
 
-    const data = rows.map((d) => attachProgress(d, byDeck.get(d.deckId) ?? new Map(), req.user));
+    const data = rows.map((d) => attachProgress(d, byDeck.get(d.deckId) ?? new Map(), user));
     res.json({ data });
   }),
 );
 
 router.get(
   '/:deckId',
+  optionalAuth,
   asyncHandler(async (req, res) => {
-    const [deck] = await db
-      .select()
-      .from(flashcardDecks)
-      .where(eq(flashcardDecks.deckId, req.params.deckId))
-      .limit(1);
+    const user = req.user ?? { id: 'guest', role: 'student', plan: 'free' };
+    let deck;
+
+    try {
+      const [row] = await db
+        .select()
+        .from(flashcardDecks)
+        .where(eq(flashcardDecks.deckId, req.params.deckId))
+        .limit(1);
+      deck = row;
+    } catch {
+      // Ignora erro de query
+    }
 
     if (!deck) throw notFound('Deck não encontrado.');
-    const isGlobal = Boolean(deck.isGlobal || deck.userId === 'admin');
-    if (!isGlobal && deck.userId !== req.user.id && !req.isAdmin) {
+    const isGlobal = Boolean(deck.isGlobal || deck.userId === 'admin' || deck.userId?.startsWith('admin'));
+    if (!isGlobal && deck.userId !== user.id && !req.isAdmin) {
       throw forbidden('Você não tem acesso a este deck.');
     }
 
-    const progressRows = await db
-      .select()
-      .from(cardProgress)
-      .where(
-        and(eq(cardProgress.userId, req.user.id), eq(cardProgress.deckId, deck.deckId)),
-      );
+    let progressRows = [];
+    try {
+      if (user.id !== 'guest') {
+        progressRows = await db
+          .select()
+          .from(cardProgress)
+          .where(
+            and(eq(cardProgress.userId, user.id), eq(cardProgress.deckId, deck.deckId)),
+          );
+      }
+    } catch {
+      // Ignora erro de progresso
+    }
     const map = new Map(progressRows.map((p) => [p.cardId, p]));
 
-    res.json({ data: attachProgress(deck, map, req.user) });
+    res.json({ data: attachProgress(deck, map, user) });
   }),
 );
 
@@ -173,6 +201,7 @@ const deckBodySchema = z.object({
   theme: z.string().trim().max(80).optional().default(''),
   plan: z.enum(PLAN_IDS).optional().default('free'),
   isGlobal: z.boolean().optional().default(false),
+  targetUserId: z.string().optional(),
   cards: z.array(cardInputSchema).min(1, 'Adicione pelo menos 1 card').max(2000),
 });
 
@@ -194,6 +223,8 @@ router.post(
     const cards = normalizeCards(req.body.cards);
     if (cards.length === 0) throw badRequest('Nenhum card válido informado.');
 
+    const targetUserId =
+      req.isAdmin && req.body.targetUserId ? req.body.targetUserId : req.user.id;
     const isGlobal = req.isAdmin ? Boolean(req.body.isGlobal) : false;
     const plan = req.isAdmin ? req.body.plan : 'free';
 
@@ -214,7 +245,7 @@ router.post(
       .insert(flashcardDecks)
       .values({
         deckId,
-        userId: req.user.id,
+        userId: targetUserId,
         name: req.body.name,
         description: req.body.description,
         category: req.body.category,

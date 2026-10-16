@@ -106,3 +106,31 @@ export const useUpdateAdminUser = () => {
     },
   });
 };
+
+export const useAssignDeckToStudent = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ deckId, targetUserId }) => {
+      const { data } = await api.post('/admin/assign-deck', { deckId, targetUserId });
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['decks'] });
+      qc.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
+};
+
+export const useAssignQuizToStudent = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ quizId, targetUserId }) => {
+      const { data } = await api.post('/admin/assign-quiz', { quizId, targetUserId });
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['quizzes'] });
+      qc.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
+};

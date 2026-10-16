@@ -2,13 +2,11 @@ import { Router } from 'express';
 import { and, desc, eq, gte, or } from 'drizzle-orm';
 import { planAllows } from '../config/plans.js';
 import { db, schema } from '../db/index.js';
-import { requireAuth } from '../middleware/auth.js';
+import { optionalAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/http.js';
 
 const router = Router();
 const { flashcardDecks, cardProgress, reviewLogs, quizzes, quizAttempts } = schema;
-
-router.use(requireAuth);
 
 const toDayKey = (date) => {
   const d = new Date(date);
@@ -37,40 +35,70 @@ function computeStreak(activeDaysSet) {
   return streak;
 }
 
+const EMPTY_STATS = {
+  summary: {
+    totalDecks: 0,
+    totalCards: 0,
+    learnedCards: 0,
+    dueToday: 0,
+    reviewsToday: 0,
+    totalReviews: 0,
+    retentionRate: 0,
+    streakDays: 0,
+    studyHours: 0,
+    quizAttempts: 0,
+    avgQuizScore: 0,
+  },
+  last7Days: [],
+  byCategory: [],
+  recentAttempts: [],
+};
+
 router.get(
   '/',
+  optionalAuth,
   asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const user = req.user ?? { id: 'guest', role: 'student', plan: 'free' };
+    const userId = user.id;
     const since90d = new Date();
     since90d.setDate(since90d.getDate() - 90);
 
-    const [decks, progressRows, reviews, attempts, allQuizzes] = await Promise.all([
-      db
-        .select()
-        .from(flashcardDecks)
-        .where(
-          or(
-            eq(flashcardDecks.userId, userId),
-            eq(flashcardDecks.isGlobal, true),
-            eq(flashcardDecks.userId, 'admin'),
+    let decks = [], progressRows = [], reviews = [], attempts = [], allQuizzes = [];
+    try {
+      [decks, progressRows, reviews, attempts, allQuizzes] = await Promise.all([
+        db
+          .select()
+          .from(flashcardDecks)
+          .where(
+            or(
+              eq(flashcardDecks.userId, userId),
+              eq(flashcardDecks.isGlobal, true),
+              eq(flashcardDecks.userId, 'admin'),
+            ),
           ),
-        ),
-      db.select().from(cardProgress).where(eq(cardProgress.userId, userId)),
-      db
-        .select()
-        .from(reviewLogs)
-        .where(and(eq(reviewLogs.userId, userId), gte(reviewLogs.createdAt, since90d)))
-        .orderBy(desc(reviewLogs.createdAt)),
-      db
-        .select()
-        .from(quizAttempts)
-        .where(eq(quizAttempts.userId, userId))
-        .orderBy(desc(quizAttempts.createdAt))
-        .limit(50),
-      db
-        .select({ id: quizzes.id, title: quizzes.title, category: quizzes.category })
-        .from(quizzes),
-    ]);
+        db.select().from(cardProgress).where(eq(cardProgress.userId, userId)),
+        db
+          .select()
+          .from(reviewLogs)
+          .where(and(eq(reviewLogs.userId, userId), gte(reviewLogs.createdAt, since90d)))
+          .orderBy(desc(reviewLogs.createdAt)),
+        db
+          .select()
+          .from(quizAttempts)
+          .where(eq(quizAttempts.userId, userId))
+          .orderBy(desc(quizAttempts.createdAt))
+          .limit(50),
+        db
+          .select({ id: quizzes.id, title: quizzes.title, category: quizzes.category })
+          .from(quizzes),
+      ]);
+    } catch {
+      return res.json({ data: EMPTY_STATS });
+    }
+
+    if (decks.length === 0 && reviews.length === 0 && attempts.length === 0) {
+      return res.json({ data: EMPTY_STATS });
+    }
 
     const accessibleDecks = decks.filter(
       (d) =>

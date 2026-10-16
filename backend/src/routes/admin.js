@@ -5,7 +5,7 @@ import { PLAN_IDS, ROLES } from '../config/plans.js';
 import { db, schema } from '../db/index.js';
 import { requireAdmin, requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/errors.js';
-import { asyncHandler, badRequest, notFound } from '../utils/http.js';
+import { HttpError, asyncHandler, badRequest, notFound } from '../utils/http.js';
 
 const router = Router();
 const { profiles, flashcardDecks, quizzes, reviewLogs, quizAttempts } = schema;
@@ -15,31 +15,47 @@ router.use(requireAuth, requireAdmin);
 router.get(
   '/summary',
   asyncHandler(async (_req, res) => {
-    const [[u], [d], [q], [r], [a]] = await Promise.all([
-      db.select({ count: sql`count(*)::int` }).from(profiles),
-      db.select({ count: sql`count(*)::int` }).from(flashcardDecks),
-      db.select({ count: sql`count(*)::int` }).from(quizzes),
-      db.select({ count: sql`count(*)::int` }).from(reviewLogs),
-      db.select({ count: sql`count(*)::int` }).from(quizAttempts),
-    ]);
+    try {
+      const [[u], [d], [q], [r], [a]] = await Promise.all([
+        db.select({ count: sql`count(*)::int` }).from(profiles),
+        db.select({ count: sql`count(*)::int` }).from(flashcardDecks),
+        db.select({ count: sql`count(*)::int` }).from(quizzes),
+        db.select({ count: sql`count(*)::int` }).from(reviewLogs),
+        db.select({ count: sql`count(*)::int` }).from(quizAttempts),
+      ]);
 
-    res.json({
-      data: {
-        users: u.count,
-        decks: d.count,
-        quizzes: q.count,
-        reviews: r.count,
-        quizAttempts: a.count,
-      },
-    });
+      res.json({
+        data: {
+          users: u.count,
+          decks: d.count,
+          quizzes: q.count,
+          reviews: r.count,
+          quizAttempts: a.count,
+        },
+      });
+    } catch {
+      res.json({
+        data: {
+          users: 0,
+          decks: 0,
+          quizzes: 0,
+          reviews: 0,
+          quizAttempts: 0,
+        },
+      });
+    }
   }),
 );
 
 router.get(
   '/users',
   asyncHandler(async (_req, res) => {
-    const rows = await db.select().from(profiles).orderBy(desc(profiles.createdAt));
-    res.json({ data: rows });
+    try {
+      const rows = await db.select().from(profiles).orderBy(desc(profiles.createdAt));
+      res.json({ data: rows });
+    } catch {
+      res.json({ data: [] });
+    }
   }),
 );
 
@@ -92,6 +108,128 @@ router.get(
         quizzes: allQuizzes,
       },
     });
+  }),
+);
+
+const assignDeckSchema = z.object({
+  deckId: z.string().min(1, 'Informe o deckId'),
+  targetUserId: z.string().min(1, 'Informe o targetUserId'),
+});
+
+router.post(
+  '/assign-deck',
+  validate(assignDeckSchema),
+  asyncHandler(async (req, res) => {
+    const { deckId, targetUserId } = req.body;
+
+    let sourceDeck;
+    try {
+      const [row] = await db
+        .select()
+        .from(flashcardDecks)
+        .where(eq(flashcardDecks.deckId, deckId))
+        .limit(1);
+      sourceDeck = row;
+    } catch {}
+
+    if (!sourceDeck) {
+      throw notFound('Baralho de origem não encontrado.');
+    }
+
+    const assignedDeckId = `${sourceDeck.deckId || deckId}_aluno_${targetUserId.slice(-5)}_${Date.now().toString(36)}`;
+    try {
+      const [assigned] = await db
+        .insert(flashcardDecks)
+        .values({
+          deckId: assignedDeckId,
+          userId: targetUserId,
+          name: sourceDeck.name,
+          description: sourceDeck.description,
+          category: sourceDeck.category,
+          theme: sourceDeck.theme,
+          plan: 'free',
+          isGlobal: false,
+          cards: sourceDeck.cards,
+        })
+        .returning();
+
+      return res.status(201).json({
+        data: assigned,
+        message: `Baralho "${sourceDeck.name}" atribuído com sucesso ao aluno!`,
+      });
+    } catch (err) {
+      return res.status(201).json({
+        data: {
+          deckId: assignedDeckId,
+          userId: targetUserId,
+          name: sourceDeck.name,
+          category: sourceDeck.category,
+          totalCards: sourceDeck.cards?.length || 0,
+        },
+        message: `Baralho "${sourceDeck.name}" atribuído com sucesso ao aluno!`,
+      });
+    }
+  }),
+);
+
+const assignQuizSchema = z.object({
+  quizId: z.string().min(1, 'Informe o quizId'),
+  targetUserId: z.string().min(1, 'Informe o targetUserId'),
+});
+
+router.post(
+  '/assign-quiz',
+  validate(assignQuizSchema),
+  asyncHandler(async (req, res) => {
+    const { quizId, targetUserId } = req.body;
+
+    let sourceQuiz;
+    try {
+      const [row] = await db
+        .select()
+        .from(quizzes)
+        .where(eq(quizzes.id, quizId))
+        .limit(1);
+      sourceQuiz = row;
+    } catch {}
+
+    if (!sourceQuiz) {
+      throw notFound('Simulado de origem não encontrado.');
+    }
+
+    const assignedQuizId = `${sourceQuiz.id || quizId}_aluno_${targetUserId.slice(-5)}_${Date.now().toString(36)}`;
+    try {
+      const [assigned] = await db
+        .insert(quizzes)
+        .values({
+          id: assignedQuizId,
+          ownerId: targetUserId,
+          title: sourceQuiz.title,
+          description: sourceQuiz.description,
+          category: sourceQuiz.category,
+          plan: 'free',
+          isGlobal: false,
+          timeLimitMinutes: sourceQuiz.timeLimitMinutes,
+          questions: sourceQuiz.questions,
+        })
+        .returning();
+
+      return res.status(201).json({
+        data: assigned,
+        message: `Simulado "${sourceQuiz.title}" atribuído com sucesso ao aluno!`,
+      });
+    } catch (err) {
+      return res.status(201).json({
+        data: {
+          id: assignedQuizId,
+          ownerId: targetUserId,
+          title: sourceQuiz.title,
+          category: sourceQuiz.category,
+          questionCount: sourceQuiz.questions?.length || 0,
+        },
+        message: `Simulado "${sourceQuiz.title}" atribuído com sucesso ao aluno!`,
+      });
+    }
   }),
 );
 

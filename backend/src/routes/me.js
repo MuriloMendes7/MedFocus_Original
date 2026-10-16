@@ -17,13 +17,17 @@ router.get(
   '/',
   asyncHandler(async (req, res) => {
     const now = new Date();
-    const last = req.user.lastLoginAt ? new Date(req.user.lastLoginAt) : null;
-    if (!last || now.getTime() - last.getTime() > 5 * 60_000) {
-      await db
-        .update(profiles)
-        .set({ lastLoginAt: now })
-        .where(eq(profiles.id, req.user.id));
-      req.user.lastLoginAt = now;
+    try {
+      const last = req.user.lastLoginAt ? new Date(req.user.lastLoginAt) : null;
+      if (!last || now.getTime() - last.getTime() > 5 * 60_000) {
+        await db
+          .update(profiles)
+          .set({ lastLoginAt: now })
+          .where(eq(profiles.id, req.user.id));
+        req.user.lastLoginAt = now;
+      }
+    } catch {
+      // Ignora erro de gravação se banco estiver offline
     }
 
     res.json({

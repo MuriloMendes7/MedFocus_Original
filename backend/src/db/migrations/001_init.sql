@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS flashcard_decks (
 );
 
 ALTER TABLE flashcard_decks ADD COLUMN IF NOT EXISTS is_global BOOLEAN NOT NULL DEFAULT FALSE;
--- Decks criados pelo admin antigo (user_id = 'admin') passam a ser globais.
-UPDATE flashcard_decks SET is_global = TRUE WHERE user_id = 'admin' AND is_global = FALSE;
+-- Decks criados por administradores (user_id = 'admin' ou 'admin_%') passam a ser globais.
+UPDATE flashcard_decks SET is_global = TRUE WHERE (user_id LIKE 'admin%' OR user_id = 'admin') AND is_global = FALSE;
 CREATE INDEX IF NOT EXISTS flashcard_decks_user_idx ON flashcard_decks (user_id);
 
 CREATE TABLE IF NOT EXISTS card_progress (
