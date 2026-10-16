@@ -6,72 +6,97 @@
   :root,
   html.light {
     color-scheme: light;
-    background-color: #f8fafc;
-    color: #0f172a;
+    background-color: #FAF8F5; /* Off-white / creme natural acolhedor */
+    color: #1C2321; /* Carvão mineral / petróleo profundo */
   }
 
   html.dark {
     color-scheme: dark;
-    background-color: #020617;
-    color: #f8fafc;
+    background-color: #121615; /* Chumbo mineral quente */
+    color: #F1F4F2;
   }
 
   body {
     background-color: inherit;
     color: inherit;
-    @apply font-sans antialiased transition-colors duration-200;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    @apply antialiased transition-colors duration-200;
   }
 
-  /* Garante contraste explícito em todos os campos de formulário nos dois temas */
+  /* Títulos editoriais com personalidade e calor humano */
+  .font-serif {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+  }
+
+  /* Garante contraste explícito em formulários */
   input,
   select,
   textarea {
-    color: #0f172a;
+    color: #1C2321;
   }
 
   html.dark input,
   html.dark select,
   html.dark textarea {
-    color: #f8fafc;
+    color: #F1F4F2;
   }
 
   input::placeholder,
   textarea::placeholder {
-    color: #94a3b8;
+    color: #8C9993;
   }
 
   html.dark input::placeholder,
   html.dark textarea::placeholder {
-    color: #64748b;
+    color: #6C7A74;
   }
 
-  /* Evita texto branco em fundo branco nos menus <select>/<option> no Windows */
   select option {
-    background-color: #ffffff;
-    color: #0f172a;
+    background-color: #FAF8F5;
+    color: #1C2321;
   }
 
   html.dark select option {
-    background-color: #0f172a;
-    color: #f8fafc;
+    background-color: #1A211E;
+    color: #F1F4F2;
   }
 
-  /* Corrige o fundo e a cor do texto no autopreenchimento (autofill) do navegador */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus {
-    -webkit-text-fill-color: #0f172a;
-    -webkit-box-shadow: 0 0 0px 1000px #ffffff inset;
+    -webkit-text-fill-color: #1C2321;
+    -webkit-box-shadow: 0 0 0px 1000px #FAF8F5 inset;
     transition: background-color 5000s ease-in-out 0s;
   }
 
   html.dark input:-webkit-autofill,
   html.dark input:-webkit-autofill:hover,
   html.dark input:-webkit-autofill:focus {
-    -webkit-text-fill-color: #f8fafc;
-    -webkit-box-shadow: 0 0 0px 1000px #1e293b inset;
+    -webkit-text-fill-color: #F1F4F2;
+    -webkit-box-shadow: 0 0 0px 1000px #1A211E inset;
   }
 }
+
+/* Transições de Scroll Elegantes e Humanizadas */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.delay-100 { transition-delay: 100ms; }
+.delay-150 { transition-delay: 150ms; }
+.delay-200 { transition-delay: 200ms; }
+.delay-250 { transition-delay: 250ms; }
+.delay-300 { transition-delay: 300ms; }
+.delay-400 { transition-delay: 400ms; }
 
 /* Utilitários 3D para o flip do flashcard */
 .perspective-1000 {
@@ -89,4 +114,10 @@
 
 .rotate-y-180 {
   transform: rotateY(180deg);
+}
+
+/* Textura suave de ficha médica / papel editorial */
+.paper-pattern {
+  background-image: radial-gradient(rgba(101, 128, 116, 0.12) 1px, transparent 1px);
+  background-size: 20px 20px;
 }

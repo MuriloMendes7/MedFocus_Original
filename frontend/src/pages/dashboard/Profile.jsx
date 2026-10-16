@@ -57,84 +57,84 @@ const Profile = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+      <div className="pb-4 border-b border-[#E8E2D6] dark:border-[#24312B]">
+        <h1 className="text-2xl md:text-3xl font-serif text-[#172622] dark:text-[#F1F5F3] tracking-tight">
           Configurações de Perfil
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-          Gerencie suas informações pessoais, plano e segurança da conta.
+        <p className="text-[#6A7B74] dark:text-[#93A59E] text-xs md:text-sm mt-1">
+          Gerencie suas informações pessoais, plano de assinatura e segurança da conta.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-8 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center gap-6">
-          <div className="w-20 h-20 rounded-2xl bg-blue-600 flex items-center justify-center text-3xl font-black">
+      <div className="bg-[#FFFFFF] dark:bg-[#18211E] rounded-2xl border border-[#DDD6C8] dark:border-[#2A3731] shadow-xs overflow-hidden">
+        <div className="p-7 bg-[#1A3835] text-[#FAF8F5] flex flex-col sm:flex-row sm:items-center gap-5 border-b border-[#254F4A]">
+          <div className="w-16 h-16 rounded-xl bg-[#254F4A] border border-[#3B6955] flex items-center justify-center text-2xl font-serif text-[#FAF8F5]">
             {(user?.name || user?.email || 'M').charAt(0).toUpperCase()}
           </div>
           <div>
-            <h3 className="text-xl font-bold">{user?.name || 'Estudante'}</h3>
-            <p className="text-slate-400 text-sm">{user?.email}</p>
-            <span className="inline-block mt-2 px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-full uppercase">
+            <h3 className="text-lg font-serif">{user?.name || 'Estudante'}</h3>
+            <p className="text-[#A1C5B5] text-xs font-mono">{user?.email}</p>
+            <span className="inline-block mt-2 px-2.5 py-0.5 bg-[#FAF8F5]/10 text-[#FAF8F5] text-[10px] font-mono uppercase tracking-wider rounded-md border border-[#FAF8F5]/20">
               Plano {planDetails?.name || user?.plan}
             </span>
           </div>
         </div>
 
-        <form onSubmit={handleSaveProfile} className="p-8 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSaveProfile} className="p-7 space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#5D6D67] dark:text-[#9FB0A9] mb-1">
                 Nome Completo
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <User className="w-4 h-4 text-[#889892] absolute left-3.5 top-3" />
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium dark:text-white"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF8F5] dark:bg-[#141B18] border border-[#D5CDC0] dark:border-[#2E3E37] rounded-lg text-sm text-[#1C2A26] dark:text-[#EAEFEA] focus:outline-none focus:border-[#1A3835]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                E-mail (gerenciado pelo Neon Auth)
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#5D6D67] dark:text-[#9FB0A9] mb-1">
+                E-mail Cadastrado
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Mail className="w-4 h-4 text-[#889892] absolute left-3.5 top-3" />
                 <input
                   type="email"
                   disabled
                   value={user?.email || ''}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-500 cursor-not-allowed"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#F4F1EA] dark:bg-[#1F2B26] border border-[#DDD6C8] dark:border-[#2A3731] rounded-lg text-sm text-[#889892] cursor-not-allowed font-mono text-xs"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                Telefone / WhatsApp
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#5D6D67] dark:text-[#9FB0A9] mb-1">
+                WhatsApp / Telefone
               </label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Phone className="w-4 h-4 text-[#889892] absolute left-3.5 top-3" />
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="(11) 99999-9999"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium dark:text-white"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF8F5] dark:bg-[#141B18] border border-[#D5CDC0] dark:border-[#2E3E37] rounded-lg text-sm text-[#1C2A26] dark:text-[#EAEFEA] focus:outline-none focus:border-[#1A3835]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#5D6D67] dark:text-[#9FB0A9] mb-1">
                 Limites do seu plano
               </label>
-              <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-blue-500 shrink-0" />
+              <div className="px-3.5 py-2.5 bg-[#FAF8F5] dark:bg-[#141B18] border border-[#D5CDC0] dark:border-[#2E3E37] rounded-lg text-xs font-mono text-[#5D6D67] dark:text-[#A1C5B5] flex items-center gap-2">
+                <Shield className="w-4 h-4 text-[#1A3835] dark:text-[#A1C5B5] shrink-0" />
                 <span>
                   Cards próprios:{' '}
                   {planDetails?.limits?.ownCards === null
@@ -150,17 +150,17 @@ const Profile = () => {
           </div>
 
           {feedback && (
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+            <div className="flex items-center gap-2 text-xs font-medium text-[#24503F] dark:text-[#8EBFAC] bg-[#EDF3EF] dark:bg-[#1E2E27] p-2.5 rounded-lg border border-[#CFDFD7] dark:border-[#2F493E]">
               <CheckCircle2 className="w-4 h-4" />
               <span>{feedback}</span>
             </div>
           )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-2">
             <button
               type="submit"
               disabled={saving}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition disabled:opacity-50"
+              className="bg-[#1A3835] hover:bg-[#254F4A] text-[#FAF8F5] px-5 py-2.5 rounded-lg font-medium text-xs transition disabled:opacity-50"
             >
               {saving ? 'Salvando...' : 'Salvar Alterações'}
             </button>
@@ -171,11 +171,11 @@ const Profile = () => {
       {/* Alteração de senha via Neon Auth */}
       <form
         onSubmit={handleChangePassword}
-        className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5"
+        className="bg-[#FFFFFF] dark:bg-[#18211E] rounded-2xl p-7 border border-[#DDD6C8] dark:border-[#2A3731] shadow-xs space-y-4"
       >
-        <div className="flex items-center gap-2 text-slate-900 dark:text-white font-extrabold">
-          <Lock className="w-5 h-5 text-blue-600" />
-          <h3>Alterar Senha</h3>
+        <div className="flex items-center gap-2 text-[#172622] dark:text-[#F1F5F3]">
+          <Lock className="w-4 h-4 text-[#1A3835] dark:text-[#A1C5B5]" />
+          <h3 className="font-serif text-base">Alterar Senha</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -185,7 +185,7 @@ const Profile = () => {
             placeholder="Senha atual"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
+            className="px-3.5 py-2.5 bg-[#FAF8F5] dark:bg-[#141B18] border border-[#D5CDC0] dark:border-[#2E3E37] rounded-lg text-sm text-[#1C2A26] dark:text-[#EAEFEA] focus:outline-none focus:border-[#1A3835]"
           />
           <input
             type="password"
@@ -193,18 +193,18 @@ const Profile = () => {
             placeholder="Nova senha (mín. 8 caracteres)"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
+            className="px-3.5 py-2.5 bg-[#FAF8F5] dark:bg-[#141B18] border border-[#D5CDC0] dark:border-[#2E3E37] rounded-lg text-sm text-[#1C2A26] dark:text-[#EAEFEA] focus:outline-none focus:border-[#1A3835]"
           />
         </div>
 
         {passwordMsg && (
-          <p className="text-xs font-bold text-blue-600 dark:text-blue-400">{passwordMsg}</p>
+          <p className="text-xs font-mono text-[#1A3835] dark:text-[#A1C5B5]">{passwordMsg}</p>
         )}
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2">
           <button
             type="submit"
-            className="px-6 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-sm"
+            className="px-5 py-2.5 rounded-lg bg-[#FAF8F5] dark:bg-[#141B18] border border-[#DDD6C8] dark:border-[#2A3731] hover:bg-[#F4F1EA] text-[#172622] dark:text-[#F1F5F3] font-medium text-xs transition"
           >
             Atualizar Senha
           </button>

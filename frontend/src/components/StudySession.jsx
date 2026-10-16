@@ -53,41 +53,41 @@ const StudySession = ({ deck, onFinish }) => {
   if (isFinished) {
     const accuracy = studiedCount > 0 ? Math.round((correctCount / studiedCount) * 100) : 100;
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
-        <div className="bg-emerald-100 dark:bg-emerald-900/30 p-5 rounded-full text-emerald-600 dark:text-emerald-400 mb-6">
-          <Check className="w-12 h-12" />
+      <div className="flex flex-col items-center justify-center py-16 text-center bg-[#FFFFFF] dark:bg-[#18211E] rounded-2xl border border-[#DDD6C8] dark:border-[#2A3731] p-8 shadow-xs">
+        <div className="bg-[#EDF3EF] dark:bg-[#1F2E28] p-4 rounded-full text-[#24503F] dark:text-[#8EBFAC] mb-5 border border-[#CFDFD7] dark:border-[#2F493E]">
+          <Check className="w-10 h-10" />
         </div>
-        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">
-          Sessão Concluída!
+        <h2 className="text-2xl md:text-3xl font-serif text-[#172622] dark:text-[#F1F5F3] mb-2">
+          Ciclo de Revisão Concluído
         </h2>
-        <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md">
-          Excelente trabalho! Seu progresso foi salvo na nuvem com o algoritmo SM-2.
+        <p className="text-xs md:text-sm text-[#6A7B74] dark:text-[#93A59E] mb-8 max-w-md leading-relaxed">
+          Seus novos intervalos de retenção foram recalculados pelo algoritmo SM-2.
         </p>
 
-        <div className="grid grid-cols-3 gap-4 w-full max-w-md mb-8">
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800">
-            <p className="text-2xl font-black text-slate-900 dark:text-white">{studiedCount}</p>
-            <p className="text-xs font-bold text-slate-500 uppercase">Revisados</p>
+        <div className="grid grid-cols-3 gap-3 w-full max-w-md mb-8">
+          <div className="p-4 rounded-xl bg-[#FAF8F5] dark:bg-[#141B18] border border-[#DDD6C8] dark:border-[#2A3731]">
+            <p className="text-2xl font-serif text-[#172622] dark:text-[#F1F5F3]">{studiedCount}</p>
+            <p className="text-[10px] font-mono uppercase tracking-wider text-[#6A7B74]">Revisados</p>
           </div>
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800">
-            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+          <div className="p-4 rounded-xl bg-[#FAF8F5] dark:bg-[#141B18] border border-[#DDD6C8] dark:border-[#2A3731]">
+            <p className="text-2xl font-serif text-[#24503F] dark:text-[#8EBFAC]">
               {accuracy}%
             </p>
-            <p className="text-xs font-bold text-slate-500 uppercase">Precisão</p>
+            <p className="text-[10px] font-mono uppercase tracking-wider text-[#6A7B74]">Acurácia</p>
           </div>
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800">
-            <p className="text-2xl font-black text-blue-600 dark:text-blue-400">
+          <div className="p-4 rounded-xl bg-[#FAF8F5] dark:bg-[#141B18] border border-[#DDD6C8] dark:border-[#2A3731]">
+            <p className="text-2xl font-serif text-[#1A3835] dark:text-[#A1C5B5]">
               {formatTime(elapsedSeconds)}
             </p>
-            <p className="text-xs font-bold text-slate-500 uppercase">Tempo</p>
+            <p className="text-[10px] font-mono uppercase tracking-wider text-[#6A7B74]">Tempo</p>
           </div>
         </div>
 
         <button
           onClick={onFinish}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-2xl font-bold transition shadow-lg shadow-blue-600/20"
+          className="bg-[#1A3835] hover:bg-[#254F4A] text-[#FAF8F5] px-7 py-3 rounded-xl font-medium text-xs transition"
         >
-          Voltar para Decks
+          Voltar para Baralhos
         </button>
       </div>
     );
@@ -96,8 +96,8 @@ const StudySession = ({ deck, onFinish }) => {
   if (!currentCard) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <AlertCircle className="w-12 h-12 text-slate-300 mb-4" />
-        <p className="text-slate-500">Carregando sessão...</p>
+        <AlertCircle className="w-10 h-10 text-[#889892] mb-3" />
+        <p className="text-xs font-mono text-[#6A7B74]">Carregando sessão de estudo...</p>
       </div>
     );
   }
@@ -111,19 +111,19 @@ const StudySession = ({ deck, onFinish }) => {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* HUD */}
       <div className="space-y-2">
-        <div className="flex justify-between items-center text-sm font-bold text-slate-500 dark:text-slate-400 px-1">
+        <div className="flex justify-between items-center text-xs font-mono text-[#6A7B74] dark:text-[#93A59E] px-1">
           <span>
             Card {currentIndex + 1} de {totalCards}
           </span>
-          <span className="flex items-center gap-1.5 font-mono text-xs bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-            <Clock className="w-3.5 h-3.5" />
+          <span className="flex items-center gap-1.5 bg-[#FAF8F5] dark:bg-[#18211E] px-2.5 py-1 rounded-md border border-[#DDD6C8] dark:border-[#2A3731]">
+            <Clock className="w-3 h-3 text-[#889892]" />
             {formatTime(elapsedSeconds)}
           </span>
           <span>{Math.round(progress)}%</span>
         </div>
-        <div className="h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+        <div className="h-2 bg-[#E8E2D6] dark:bg-[#24312B] rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-600 transition-all duration-300 ease-out"
+            className="h-full bg-[#1A3835] dark:bg-[#527063] transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -140,38 +140,40 @@ const StudySession = ({ deck, onFinish }) => {
           }`}
         >
           {/* Frente */}
-          <div className="absolute inset-0 backface-hidden bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center text-center border-2 border-slate-200 dark:border-slate-800 shadow-xl">
-            <span className="text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-widest mb-4 bg-blue-50 dark:bg-blue-950/60 px-3 py-1 rounded-full">
-              Pergunta
+          <div className="absolute inset-0 backface-hidden bg-[#FFFFFF] dark:bg-[#18211E] rounded-2xl p-8 md:p-10 flex flex-col items-center justify-center text-center border border-[#DDD6C8] dark:border-[#2A3731] shadow-xs">
+            <span className="text-[10px] font-mono uppercase tracking-widest mb-4 bg-[#F4F1EA] dark:bg-[#202C27] text-[#556961] dark:text-[#95A8A0] px-3 py-1 rounded-full border border-[#E5DFD4] dark:border-[#293630]">
+              Pergunta Clínica
             </span>
             <div className="my-auto max-h-56 overflow-y-auto px-2">
-              <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white leading-relaxed">
+              <h3 className="text-xl md:text-2xl font-serif text-[#172622] dark:text-[#F1F5F3] leading-relaxed">
                 {frontText}
               </h3>
             </div>
-            <p className="mt-4 text-slate-400 dark:text-slate-500 text-xs font-semibold">
-              Clique ou pressione <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Espaço</kbd> para revelar
+            <p className="mt-4 text-[#889892] text-xs font-mono">
+              Clique ou pressione <kbd className="px-1.5 py-0.5 rounded bg-[#FAF8F5] dark:bg-[#202C27] border border-[#DDD6C8] dark:border-[#2A3731]">Espaço</kbd> para revelar
             </p>
           </div>
 
           {/* Verso */}
-          <div className="absolute inset-0 backface-hidden rotate-y-180 bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center text-center border-2 border-blue-500 shadow-2xl">
-            <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full">
-              Resposta
+          <div className="absolute inset-0 backface-hidden rotate-y-180 bg-[#FFFFFF] dark:bg-[#18211E] rounded-2xl p-8 md:p-10 flex flex-col items-center justify-center text-center border-2 border-[#1A3835] dark:border-[#4D7B6A] shadow-md">
+            <span className="text-[10px] font-mono uppercase tracking-widest mb-4 bg-[#EDF3EF] dark:bg-[#1E2E27] text-[#24503F] dark:text-[#8EBFAC] px-3 py-1 rounded-full border border-[#CFDFD7] dark:border-[#2F493E]">
+              Resposta & Justificativa
             </span>
             <div className="my-auto max-h-56 overflow-y-auto space-y-4 px-2">
-              <p className="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 leading-relaxed">
+              <p className="text-lg md:text-xl font-serif text-[#172622] dark:text-[#F1F5F3] leading-relaxed">
                 {backText}
               </p>
               {explanationText && (
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 text-sm text-left flex gap-2.5 items-start">
-                  <Sparkles className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                <div className="p-3.5 rounded-xl bg-[#FAF8F5] dark:bg-[#141B18] border border-[#DDD6C8] dark:border-[#2A3731] text-[#5D6D67] dark:text-[#90A29A] text-xs text-left leading-relaxed">
+                  <span className="font-semibold block text-[#1A3835] dark:text-[#A1C5B5] mb-1 font-mono uppercase text-[10px]">
+                    Explicação Clínica:
+                  </span>
                   <span>{explanationText}</span>
                 </div>
               )}
             </div>
-            <p className="mt-4 text-slate-400 text-xs font-semibold">
-              Avalie abaixo (atalhos <kbd className="px-1 rounded bg-slate-100 dark:bg-slate-800">1</kbd>–<kbd className="px-1 rounded bg-slate-100 dark:bg-slate-800">4</kbd>)
+            <p className="mt-4 text-[#889892] text-xs font-mono">
+              Avalie seu grau de retenção (teclas <kbd className="px-1 rounded bg-[#FAF8F5] dark:bg-[#202C27] border border-[#DDD6C8]">1</kbd> a <kbd className="px-1 rounded bg-[#FAF8F5] dark:bg-[#202C27] border border-[#DDD6C8]">4</kbd>)
             </p>
           </div>
         </div>
@@ -223,7 +225,7 @@ const StudySession = ({ deck, onFinish }) => {
           label="Fácil"
           interval={formatIntervalLabel(intervalPreviews?.easy)}
           icon={FastForward}
-          color="blue"
+          color="teal"
           onClick={() => {
             setIsFlipped(false);
             handleRate(4);
@@ -235,12 +237,12 @@ const StudySession = ({ deck, onFinish }) => {
 };
 
 const COLOR_STYLES = {
-  red: 'border-red-200 dark:border-red-900/40 hover:border-red-500 text-red-600 dark:text-red-400',
+  red: 'border-[#F2D0C8] dark:border-[#4B2922] bg-[#FDF7F5] dark:bg-[#231A18] hover:border-[#C47253] text-[#A13A28] dark:text-[#E27D60]',
   amber:
-    'border-amber-200 dark:border-amber-900/40 hover:border-amber-500 text-amber-600 dark:text-amber-400',
+    'border-[#EADBBD] dark:border-[#3D371E] bg-[#FAF8EE] dark:bg-[#222016] hover:border-[#B8860B] text-[#8C6D1F] dark:text-[#DFC377]',
   emerald:
-    'border-emerald-200 dark:border-emerald-900/40 hover:border-emerald-500 text-emerald-600 dark:text-emerald-400',
-  blue: 'border-blue-200 dark:border-blue-900/40 hover:border-blue-500 text-blue-600 dark:text-blue-400',
+    'border-[#CFDFD7] dark:border-[#2F493E] bg-[#F5FAF7] dark:bg-[#18231E] hover:border-[#3B6955] text-[#24503F] dark:text-[#8EBFAC]',
+  teal: 'border-[#DDD6C8] dark:border-[#2A3731] bg-[#FAF8F5] dark:bg-[#1A2622] hover:border-[#1A3835] text-[#1A3835] dark:text-[#A1C5B5]',
 };
 
 const RateButton = ({ shortcut, label, interval, icon: Icon, color, onClick }) => (
@@ -250,13 +252,13 @@ const RateButton = ({ shortcut, label, interval, icon: Icon, color, onClick }) =
       e.stopPropagation();
       onClick();
     }}
-    className={`flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-white dark:bg-slate-900 border-2 transition-all active:scale-95 ${COLOR_STYLES[color]}`}
+    className={`flex flex-col items-center gap-1.5 p-3.5 rounded-xl border transition-all active:scale-95 ${COLOR_STYLES[color]}`}
   >
-    <Icon className="w-5 h-5" />
-    <span className="text-xs font-extrabold uppercase">
+    <Icon className="w-4 h-4" />
+    <span className="text-xs font-medium uppercase font-mono tracking-wider">
       {label} <span className="opacity-50">({shortcut})</span>
     </span>
-    <span className="text-[11px] text-slate-400 font-semibold">{interval}</span>
+    <span className="text-[10px] font-mono opacity-80">{interval}</span>
   </button>
 );
 

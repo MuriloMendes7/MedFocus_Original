@@ -18,46 +18,45 @@ const Stats = () => {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Estatísticas Detalhadas
+      <div className="pb-4 border-b border-[#E8E2D6] dark:border-[#24312B]">
+        <h1 className="text-2xl md:text-3xl font-serif text-[#172622] dark:text-[#F1F5F3] tracking-tight">
+          Desempenho e Retenção
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-          Analise seu desempenho real por disciplina, retenção de flashcards e histórico de
-          simulados.
+        <p className="text-[#6A7B74] dark:text-[#93A59E] text-xs md:text-sm mt-1">
+          Análise longitudinal de revisões espaçadas, acurácia por especialidade e simulados.
         </p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryBox
-          label="Revisões (90d)"
+          label="Revisões (90 dias)"
           value={isLoading ? '...' : summary.totalReviews}
         />
         <SummaryBox
-          label="Cards Aprendidos"
+          label="Cards Consolidados"
           value={isLoading ? '...' : `${summary.learnedCards}/${summary.totalCards}`}
         />
         <SummaryBox
-          label="Simulados Realizados"
+          label="Simulados Concluídos"
           value={isLoading ? '...' : summary.quizAttempts}
         />
         <SummaryBox
-          label="Média nos Simulados"
+          label="Acurácia Geral"
           value={isLoading ? '...' : `${summary.avgQuizScore}%`}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Desempenho por disciplina */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2 mb-6 text-slate-900 dark:text-white font-extrabold">
-            <BarChart3 className="w-5 h-5 text-blue-600" />
-            <h3>Aproveitamento por Disciplina</h3>
+        <div className="bg-[#FFFFFF] dark:bg-[#18211E] p-6 rounded-2xl border border-[#DDD6C8] dark:border-[#2A3731] shadow-xs">
+          <div className="flex items-center gap-2 mb-6 text-[#172622] dark:text-[#F1F5F3]">
+            <BarChart3 className="w-4 h-4 text-[#1A3835] dark:text-[#A1C5B5]" />
+            <h3 className="font-serif text-base">Aproveitamento por Especialidade</h3>
           </div>
 
           {byCategory.length === 0 ? (
-            <p className="text-sm text-slate-400 py-10 text-center">
-              Estude flashcards ou realize simulados para ver seu desempenho por matéria.
+            <p className="text-xs font-mono text-[#889892] py-10 text-center">
+              Complete revisões ou simulados para gerar métricas por disciplina.
             </p>
           ) : (
             <div className="space-y-4">
@@ -74,48 +73,48 @@ const Stats = () => {
         </div>
 
         {/* Histórico recente de simulados */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2 mb-6 text-slate-900 dark:text-white font-extrabold">
-            <TrendingUp className="w-5 h-5 text-emerald-600" />
-            <h3>Últimos Simulados</h3>
+        <div className="bg-[#FFFFFF] dark:bg-[#18211E] p-6 rounded-2xl border border-[#DDD6C8] dark:border-[#2A3731] shadow-xs">
+          <div className="flex items-center gap-2 mb-6 text-[#172622] dark:text-[#F1F5F3]">
+            <TrendingUp className="w-4 h-4 text-[#2D6A4F] dark:text-[#8EBFAC]" />
+            <h3 className="font-serif text-base">Histórico Recente de Simulados</h3>
           </div>
 
           {recentAttempts.length === 0 ? (
-            <p className="text-sm text-slate-400 py-10 text-center">
-              Você ainda não concluiu nenhum simulado.
+            <p className="text-xs font-mono text-[#889892] py-10 text-center">
+              Nenhum simulado registrado até o momento.
             </p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {recentAttempts.map((attempt) => (
                 <div
                   key={attempt.id}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60"
+                  className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] dark:bg-[#141B18] border border-[#E8E2D6] dark:border-[#24312B]"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
                         attempt.score >= 70
-                          ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
-                          : 'bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400'
+                          ? 'bg-[#EDF3EF] text-[#24503F] border-[#CFDFD7] dark:bg-[#1E2E27] dark:text-[#8EBFAC] dark:border-[#2F493E]'
+                          : 'bg-[#FAF5E8] text-[#8C6D1F] border-[#EADBBD] dark:bg-[#252216] dark:text-[#DFC377] dark:border-[#3D371E]'
                       }`}
                     >
                       {attempt.score >= 70 ? (
-                        <CheckCircle2 className="w-5 h-5" />
+                        <CheckCircle2 className="w-4 h-4" />
                       ) : (
-                        <Award className="w-5 h-5" />
+                        <Award className="w-4 h-4" />
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                      <p className="text-xs font-semibold text-[#172622] dark:text-[#F1F5F3] truncate">
                         {attempt.quizTitle}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[11px] font-mono text-[#6A7B74]">
                         {attempt.correct}/{attempt.total} acertos •{' '}
                         {new Date(attempt.createdAt).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm font-black text-slate-900 dark:text-white">
+                  <span className="text-sm font-serif text-[#172622] dark:text-[#F1F5F3]">
                     {attempt.score}%
                   </span>
                 </div>
@@ -129,24 +128,24 @@ const Stats = () => {
 };
 
 const SummaryBox = ({ label, value }) => (
-  <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
-    <p className="text-xs font-bold text-slate-400 uppercase">{label}</p>
-    <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{value}</p>
+  <div className="bg-[#FFFFFF] dark:bg-[#18211E] p-5 rounded-2xl border border-[#DDD6C8] dark:border-[#2A3731] shadow-xs">
+    <p className="text-[10px] font-mono uppercase tracking-wider text-[#6A7B74] dark:text-[#93A59E]">{label}</p>
+    <p className="text-2xl font-serif text-[#172622] dark:text-[#F1F5F3] mt-1">{value}</p>
   </div>
 );
 
 const StatBar = ({ label, subLabel, percentage }) => (
-  <div className="space-y-1.5">
-    <div className="flex justify-between text-sm">
-      <span className="text-slate-700 dark:text-slate-200 font-bold">
+  <div className="space-y-1">
+    <div className="flex justify-between text-xs">
+      <span className="text-[#354640] dark:text-[#CAD6D1] font-medium">
         {label}{' '}
-        <span className="text-xs font-normal text-slate-400">({subLabel})</span>
+        <span className="text-[10px] font-mono text-[#889892]">({subLabel})</span>
       </span>
-      <span className="text-slate-900 dark:text-white font-extrabold">{percentage}%</span>
+      <span className="font-mono font-semibold text-[#172622] dark:text-[#F1F5F3]">{percentage}%</span>
     </div>
-    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+    <div className="w-full bg-[#E8E2D6] dark:bg-[#24312B] h-2 rounded-full overflow-hidden">
       <div
-        className="bg-blue-600 h-full rounded-full transition-all duration-700"
+        className="bg-[#1A3835] dark:bg-[#527063] h-full rounded-full transition-all duration-700"
         style={{ width: `${percentage}%` }}
       />
     </div>
